@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compressing Long Contexts with Log-Signatures — Rauan Akylzhanov</title>
+  <meta name="description" content="Can rough path theory solve the O(n²) attention bottleneck? A proposal for log-signature context compression on TPU." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,700;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:      #0e0e0e;
+      --paper:    #f7f4ef;
+      --accent:   #b5411a;
+      --muted:    #6b6560;
+      --rule:     #d9d3cb;
+      --code-bg:  #1a1814;
+      --code-fg:  #e8ddd0;
+      --serif:    'EB Garamond', Georgia, serif;
+      --mono:     'JetBrains Mono', 'Courier New', monospace;
+      --max:      700px;
+    }
+
+    html { font-size: 18px; scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--serif);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.75;
+      padding: 0 1.25rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .page {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 3.5rem 0 6rem;
+    }
+
+    /* ── Back link ── */
+    .back {
+      font-family: var(--mono);
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      margin-bottom: 2.5rem;
+      transition: color .2s;
+    }
+    .back:hover { color: var(--accent); }
+
+    /* ── Article header ── */
+    .post-header { margin-bottom: 2.5rem; animation: fadeUp .7s ease both; }
+
+    .post-meta {
+      font-family: var(--mono);
+      font-size: .7rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .8rem;
+      display: flex;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .post-meta .tag-pill {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      padding: .15rem .6rem;
+      border-radius: 2px;
+      font-size: .65rem;
+    }
+
+    h1.post-title {
+      font-size: clamp(1.9rem, 5vw, 2.8rem);
+      font-weight: 500;
+      letter-spacing: -.02em;
+      line-height: 1.15;
+      margin-bottom: .8rem;
+    }
+
+    h1.post-title em { font-style: italic; color: var(--accent); }
+
+    .post-subtitle {
+      font-size: 1.05rem;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.55;
+    }
+
+    /* ── Body prose ── */
+    article { animation: fadeUp .6s .1s ease both; }
+
+    p { margin-bottom: 1.3rem; font-size: 1rem; }
+
+    h2 {
+      font-family: var(--mono);
+      font-size: .72rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 2.4rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+    }
+    h2::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin: 1.8rem 0 .6rem;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      font-family: var(--mono);
+      font-size: .72rem;
+      line-height: 1.65;
+      padding: 1.2rem 1.4rem;
+      border-radius: 2px;
+      overflow-x: auto;
+      margin: 1.4rem 0;
+      border-left: 3px solid var(--accent);
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: .8em;
+      background: rgba(181,65,26,.08);
+      color: var(--accent);
+      padding: .1em .35em;
+      border-radius: 2px;
+    }
+
+    pre code { background: none; color: inherit; font-size: inherit; padding: 0; }
+
+    /* ── Callout boxes ── */
+    .callout {
+      border-left: 3px solid var(--accent);
+      background: rgba(181,65,26,.04);
+      padding: 1rem 1.2rem;
+      margin: 1.6rem 0;
+      font-size: .93rem;
+    }
+
+    .callout .label {
+      font-family: var(--mono);
+      font-size: .65rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .4rem;
+    }
+
+    /* ── Math-style display ── */
+    .math-block {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      font-family: var(--mono);
+      font-size: .78rem;
+      padding: 1rem 1.3rem;
+      border-radius: 2px;
+      margin: 1.4rem 0;
+      line-height: 1.9;
+      overflow-x: auto;
+    }
+
+    /* ── Diagram ── */
+    .diagram {
+      font-family: var(--mono);
+      font-size: .72rem;
+      line-height: 1.6;
+      background: var(--code-bg);
+      color: #a8c4a0;
+      padding: 1.2rem 1.4rem;
+      border-radius: 2px;
+      overflow-x: auto;
+      margin: 1.4rem 0;
+    }
+
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: .72rem;
+      margin: 1.4rem 0;
+    }
+
+    th {
+      text-align: left;
+      border-bottom: 1px solid var(--accent);
+      padding: .4rem .7rem;
+      color: var(--accent);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: .4rem .7rem;
+      border-bottom: 1px solid var(--rule);
+      color: var(--ink);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Footnote / aside ── */
+    .aside {
+      font-size: .83rem;
+      color: var(--muted);
+      font-style: italic;
+      border-top: 1px solid var(--rule);
+      padding-top: .8rem;
+      margin-top: 2rem;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--rule);
+      margin-top: 3rem;
+      padding-top: 1.2rem;
+      font-family: var(--mono);
+      font-size: .68rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      pre { font-size: .65rem; }
+      table { font-size: .65rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <a class="back" href="index.html">← ra312.github.io</a>
+
+  <!-- ── Post header ── -->
+  <header class="post-header">
+    <div class="post-meta">
+      <span>March 2026</span>
+      <span class="tag-pill">rough paths</span>
+      <span class="tag-pill">transformers</span>
+      <span class="tag-pill">TPU / JAX</span>
+    </div>
+
+    <h1 class="post-title">Compressing Long Contexts<br>with <em>Log-Signatures</em></h1>
+    <p class="post-subtitle">
+      Can a century-old idea from stochastic analysis — the path signature — solve the O(n²)
+      attention bottleneck? A concrete proposal with working JAX code.
+    </p>
+  </header>
+
+  <!-- ── Article body ── -->
+  <article>
+
+    <h2>The Problem</h2>
+
+    <p>
+      Standard self-attention computes pairwise interactions between every token and every other
+      token. That is O(n²) in sequence length. At 1 million tokens, full attention is
+      simply infeasible. The usual responses — sparse attention, linear attention, sliding windows,
+      state-space models — all approximate or restrict <em>which</em> tokens can interact.
+    </p>
+
+    <p>
+      I want to ask a different question. Instead of "which token pairs should interact?", ask:
+      <strong>"what is the geometric summary of the path that tokens trace through embedding
+      space?"</strong> That summary — the <em>log-signature</em> — is a fixed-size object,
+      independent of sequence length. Attention over summaries instead of raw tokens breaks
+      the O(n²) barrier.
+    </p>
+
+    <h2>What Is a Log-Signature?</h2>
+
+    <p>
+      Treat the sequence of token embeddings X₀, X₁, …, Xₙ ∈ ℝ<sup>d</sup> as a
+      piecewise-linear path in ℝ<sup>d</sup>. The <em>signature</em> of this path is an infinite
+      series of iterated integrals that encodes its shape completely — including the
+      <em>order</em> in which dimensions are traversed. The <em>log-signature</em> is its
+      logarithm in the tensor algebra: it lives in the free Lie algebra over ℝ<sup>d</sup> and
+      is strictly more compact.
+    </p>
+
+    <div class="callout">
+      <div class="label">Key property</div>
+      The truncated log-signature at depth k is a vector of fixed size
+      N<sub>Lie</sub>(d, k) — independent of sequence length n.
+      For d = 512, k = 2: size = 512 + 512·511/2 ≈ 131K, far smaller than the raw sequence.
+      For k = 1: just 512. Depth controls the expressiveness/cost tradeoff.
+    </div>
+
+    <h3>A Concrete Example (d = 2, k = 2)</h3>
+
+    <p>
+      Four token embeddings in ℝ²: X₀ = (0,0), X₁ = (1,2), X₂ = (3,1), X₃ = (4,4).
+    </p>
+
+    <div class="math-block">
+Increments:   δX₁ = (1, 2)    δX₂ = (2, −1)    δX₃ = (1, 3)
+
+Depth-1 (total displacement):
+  L¹ = 1+2+1 = 4    L² = 2+(−1)+3 = 4
+  → (4, 4)  — order-blind, a plain sum
+
+Depth-2 (pairwise ordered interactions):
+  S¹² = Σ_{p&lt;q} δX_p¹ · δX_q² = (1)(−1)+(1)(3)+(2)(3) = 8
+  S²¹ = Σ_{p&lt;q} δX_p² · δX_q¹ = (2)(2)+(2)(1)+(−1)(1) = 5
+
+  Log-sig depth-2: L¹² = S¹² − S²¹ = 8 − 5 = 3   (only the antisymmetric part)
+
+Final: LogSig(X) = (4, 4, 3)  — 3 numbers instead of 4 + 4×4 = 20
+    </div>
+
+    <p>
+      The single depth-2 number, L¹² = 3 &gt; 0, tells us the path tended to move in dimension 1
+      <em>before</em> dimension 2. Reverse the token order and you get −3. The log-signature is
+      <strong>order-sensitive in a compact, algebraically principled way</strong> — which is
+      exactly what a positional encoding should be.
+    </p>
+
+    <h2>Two Ways to Use This in a Transformer</h2>
+
+    <h3>Part 1 — Context Compression</h3>
+
+    <p>
+      Divide the sequence into chunks of size <em>w</em> (say 64–128 tokens). Compute the
+      log-signature of each chunk. Then combine adjacent chunks hierarchically using the
+      <em>Baker–Campbell–Hausdorff (BCH)</em> formula, which is exactly the rule for composing
+      log-signatures of concatenated paths. The result is a binary tree of summaries:
+    </p>
+
+    <div class="diagram">
+tokens:  [t1  t2  t3  t4]   [t5  t6  t7  t8]   [t9  t10  t11  t12]   [t13  t14  t15  t16]
+              └── LS ──┘         └── LS ──┘           └──  LS  ──┘           └──  LS  ──┘
+                    └───── BCH ──────┘                       └──────  BCH  ──────┘
+                                    └──────────── BCH ────────────────┘
+    </div>
+
+    <p>
+      Attention runs over the <em>m = n/w</em> leaf summaries (or the full hierarchy of
+      summaries at multiple scales), not over the n raw tokens. Cost:
+    </p>
+
+    <div class="math-block">
+Build hierarchy:   O(n · poly(d, k))           ← linear in n
+Attention:         O(m² · d)   where m = n/w   ← quadratic in m, not n
+
+For n = 1M, w = 64: m = 15,625 — still large. Use linear attention over summaries → O(m·d).
+Total: O(n · poly(d, k))  ← subquadratic in n overall
+    </div>
+
+    <h3>Part 2 — Positional Encoding</h3>
+
+    <p>
+      For each position i, compute the log-signature of the path from position 0 to i
+      incrementally using Chen's identity:
+    </p>
+
+    <div class="math-block">
+LogSig(0→i) = BCH( LogSig(0→i−1),  LogSig(i−1→i) )
+    </div>
+
+    <p>
+      This costs O(poly(d,k)) per position and O(n·poly(d,k)) total. The resulting vector is
+      injected into the embedding layer as the positional encoding — replacing or augmenting
+      sinusoidal or learned encodings. Because it derives from the actual token embedding path
+      rather than just the index, it is <strong>content-aware</strong>, not purely positional.
+    </p>
+
+    <h2>Why TPUs Love This</h2>
+
+    <p>
+      The BCH combination rule at depth k=2 is:
+    </p>
+
+    <div class="math-block">
+combine((A₁, B₁), (A₂, B₂))  =  (A₁ + A₂,   B₁ + B₂ + A₁ ⊗ A₂)
+    </div>
+
+    <p>
+      The outer product A₁ ⊗ A₂ is a rank-1 matrix multiplication — exactly what the TPU's
+      <strong>MXU (Matrix Multiply Unit)</strong> is designed for. And because every tensor in
+      the tree has <em>fixed shape</em> N<sub>Lie</sub>(d,k), XLA can compile the entire
+      computation without dynamic shapes.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>Step</th><th>Operations</th><th>Parallelism</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Increments</td><td>O(nd)</td><td>fully parallel</td></tr>
+        <tr><td>Leaf init</td><td>O(nd²) outer products</td><td>fully parallel</td></tr>
+        <tr><td>Parallel scan</td><td>O(n·d²) total</td><td>O(n/2) per step</td></tr>
+        <tr><td>Antisymmetrize</td><td>O(nd²)</td><td>fully parallel</td></tr>
+        <tr><td><strong>Total</strong></td><td><strong>O(nd²)</strong></td><td><strong>O(log n) depth</strong></td></tr>
+      </tbody>
+    </table>
+
+    <p>
+      Naive sequential scan: same O(nd²) work but O(n) depth. Using
+      <code>jax.lax.associative_scan</code> reduces depth to O(log n) — for n = 1M that
+      is 20 parallel steps instead of 1 million.
+    </p>
+
+    <h2>Working JAX Code</h2>
+
+    <p>
+      Here is a minimal, runnable depth-2 log-signature via associative scan in JAX:
+    </p>
+
+<pre><code>import jax
+import jax.numpy as jnp
+import functools
+from jax import vmap
+
+def combine(seg1, seg2):
+    """BCH combination at depth 2.
+    A: depth-1 (displacement), B: depth-2 (area / Lévy bracket).
+    """
+    A1, B1 = seg1
+    A2, B2 = seg2
+    A = A1 + A2
+    B = B1 + B2 + jnp.outer(A1, A2)   # outer product → MXU
+    return A, B
+
+@functools.partial(jax.jit)
+def log_signature_k2(tokens):
+    """
+    tokens: (n, d)  — sequence of token embeddings
+    returns: (A, L) where
+      A : (n, d)    depth-1 prefix log-sigs
+      L : (n, d, d) depth-2 antisymmetric part (Lie bracket)
+    """
+    deltas = jnp.diff(tokens, axis=0)           # (n-1, d)
+    A_init = deltas
+    B_init = vmap(jnp.outer)(deltas, deltas)    # (n-1, d, d)
+
+    # O(log n) parallel depth via associative scan
+    A_scan, B_scan = jax.lax.associative_scan(combine, (A_init, B_init))
+
+    # Log-signature depth-2: antisymmetric part only
+    L2 = B_scan - jnp.transpose(B_scan, (0, 2, 1))
+    return A_scan, L2
+
+# Quick test
+key = jax.random.PRNGKey(0)
+tokens = jax.random.normal(key, (1024, 64))   # 1024 tokens, 64-dim
+A, L = log_signature_k2(tokens)
+print(A.shape, L.shape)   # (1023, 64)  (1023, 64, 64)
+</code></pre>
+
+    <p>
+      The <code>combine</code> function is the entire BCH rule at depth 2. XLA compiles this
+      into fused MXU operations. A custom Pallas kernel can further fuse this scan with the
+      subsequent attention to avoid HBM round-trips entirely.
+    </p>
+
+    <h2>Relation to Existing Work</h2>
+
+    <p>
+      <strong>Rough Transformers</strong> (Moreno-Pino et al., NeurIPS 2024) use signature
+      patching and multi-view attention for time series — an important precedent — but do not
+      target TPU memory hierarchy or hierarchical BCH combination.
+      <strong>Deep Signature Transforms</strong> (Kidger et al., NeurIPS 2019) integrate
+      signatures as learnable layers but without attention or long-context goals.
+      <strong>Flash Attention, Mamba, RWKV</strong> all reduce the O(n²) cost via sparsity,
+      linearization, or recurrence — orthogonal to the geometric compression approach here.
+    </p>
+
+    <p>
+      The specific combination — <em>hierarchical BCH as context compression, hardware-aware
+      Pallas kernel, and log-signature-derived positional encoding</em> — is, to my knowledge,
+      new. The key open question is empirical: does depth-k truncation retain enough information
+      for typical text tasks? For time series (Rough Transformers) the answer seems yes; for
+      language the evidence is thinner and worth measuring carefully.
+    </p>
+
+    <h2>Honest Open Questions</h2>
+
+    <p>
+      <strong>Truncation depth.</strong> Signatures truncated at depth k lose higher-order
+      interactions. Sufficient depth for text is not well-established; better understood in
+      financial time series. This needs ablation.
+    </p>
+
+    <p>
+      <strong>Path regularity.</strong> Rough path theory assumes some regularity (Hölder
+      continuity) of the path. Token embeddings in high dimensions may not satisfy this in a
+      useful sense — the theoretical guarantees may weaken. Empirical validation on
+      long-context benchmarks (PG19, Long-Range Arena) is necessary.
+    </p>
+
+    <p>
+      <strong>Lie algebra dimension growth.</strong> N<sub>Lie</sub>(d, k) grows with both d
+      and k. For d = 512, k = 3: roughly 22M basis elements — impractical without aggressive
+      projection. Depth-2 is the realistic starting point; sparse Lie algebra representations
+      are a possible extension.
+    </p>
+
+    <div class="callout">
+      <div class="label">Status</div>
+      This is a research proposal submitted to the 2026 Google TPU Awards program.
+      Code, benchmarks, and a full write-up will be released publicly if the project proceeds.
+      I welcome discussion — reach me at akylzhanov.r@gmail.com.
+    </div>
+
+    <h2>References</h2>
+
+    <p style="font-size:.88rem; line-height:1.9; color:#3a3530;">
+      Moreno-Pino et al., <em>Rough Transformers</em>, NeurIPS 2024.<br>
+      Kidger, Bonnier, Perez Arribas, Salvi, Lyons, <em>Deep Signature Transforms</em>, NeurIPS 2019.<br>
+      Chevyrev &amp; Kormilitzin, <em>A primer on the signature method in machine learning</em>, 2016.<br>
+      Lyons, <em>Rough paths, signatures and the modelling of functions on streams</em>, ICM 2014.<br>
+      Casas &amp; Murua, <em>An efficient algorithm for computing the BCH series</em>, 2009.<br>
+      Google JAX / Pallas documentation.
+    </p>
+
+    <p class="aside">
+      I am a mathematician turned ML researcher. My background is in harmonic analysis on
+      non-commutative spaces (quantum groups, von Neumann algebras) — which is how I ended up
+      thinking about paths and algebras in the context of language models.
+      More at <a href="index.html">ra312.github.io</a>.
+    </p>
+
+  </article>
+
+  <footer>
+    <span>© 2026 Rauan Akylzhanov</span>
+    <a href="index.html">← back to site</a>
+  </footer>
+
+</div>
+</body>
+</html>
