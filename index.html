@@ -317,7 +317,7 @@
   <!-- ── Header ──────────────────────────────────────────────────────────── -->
   <header>
     <h1 class="name">Dr Rauan <em>Akylzhanov</em></h1>
-    <p class="tagline">Pure Mathematics &nbsp;·&nbsp; Machine Learning Research &nbsp;·&nbsp; Almaty, Kazakhstan</p>
+    <p class="tagline"> AI Safety and Alignment, Foundational Machine Learning Research &nbsp;·&nbsp; Almaty, Kazakhstan</p>
     <div class="contact">
       <a href="/cdn-cgi/l/email-protection#75141e0c190f1d141b1a035b07351218141c195b161a18"><span class="__cf_email__" data-cfemail="fd9c96849187959c93928bd38fbd9a909c9491d39e9290">[email&#160;protected]</span></a>
       <a href="https://scholar.google.com/citations?user=BAxsRYkAAAAJ&amp;hl=en" target="_blank" rel="noopener">Google Scholar</a>
@@ -327,31 +327,65 @@
     </div>
   </header>
 
-  <!-- ── Current Research ────────────────────────────────────────────────── -->
   <section id="research">
-    <h2 class="section-title"><span class="chev">›</span>Current Research</h2>
+  <h2 class="section-title"><span class="chev">›</span>Current Research</h2>
 
-    <div class="pull-quote">
-      <div class="label">Active question</div>
-      Under what conditions do synthetic data-generating priors enable a tabular transformer
-      pre-trained on synthetically generated distributions to generalise to unseen real-world
-      data without task-specific fine-tuning?
-    </div>
+  <div class="pull-quote">
+    <div class="label">Core question</div>
+    How do neural representations transition between monosemantic and polysemantic regimes,
+    and what underlying structures govern this behaviour?
+  </div>
 
-    <p class="lead">
-      At <strong>HighSky</strong> I am pre-training transformer models on synthetic data generated
-      from varied Bayesian priors and structural causal graphs, with the goal of achieving
-      state-of-the-art performance on unseen real-world tabular datasets. I investigate how diverse
-      prior sampling strategies during pre-training enable foundation models to generalise across
-      heterogeneous tabular distributions. In parallel, I continue work in harmonic analysis on
-      non-commutative spaces — extending Hörmander–Mikhlin multiplier theory to general von Neumann
-      algebras.
-    </p>
+  <p class="lead">
+    My primary research focus is <strong>mechanistic interpretability of neural networks</strong>,
+    with an emphasis on understanding how internal representations evolve during training.
+    In particular, I study the emergence and breakdown of monosemantic features, and the
+    transition toward polysemantic representations in large-scale models.
+  </p>
 
-    <p class="note-link">
-      <a href="log-signature-attention.html">Note: Compressing long contexts with log-signatures (March 2026)</a>
-    </p>
-  </section>
+  <p class="lead">
+    I aim to develop <strong>rigorous analytical tools</strong> for dissecting these transitions,
+    drawing on spectral methods and operator-theoretic techniques from
+    <strong>noncommutative harmonic analysis</strong>. The goal is to move beyond empirical
+    interpretability and toward a mathematically grounded theory of representation structure.
+  </p>
+
+  <p class="lead">
+    As part of this, I use <strong>log-signature representations of sequences</strong> as a
+    structured probe for studying how transformers compress and organise contextual
+    information. Unlike standard embeddings, path signatures provide a graded algebraic
+    basis, allowing us to isolate contributions from different interaction orders. This
+    makes it possible to analyse how neural representations transition from high-order,
+    entangled (polysemantic) regimes toward lower-order, structured (monosemantic)
+    features under architectural or training constraints.
+  </p>
+
+  <p class="lead">
+    This perspective connects sequence modelling with tools from noncommutative harmonic
+    analysis, where operator structure and spectral behaviour govern how information is
+    distributed and transformed.
+  </p>
+
+  <p class="lead">
+    At <strong>HighSky</strong>, I work on transformer architectures for tabular data and
+    synthetic pre-training via Bayesian priors and structural causal models. This serves as a
+    controlled setting for probing representation learning dynamics and testing hypotheses
+    about generalisation and feature structure in heterogeneous data regimes.
+  </p>
+
+  <p class="lead">
+    More broadly, I am interested in closing the gap between <em>what we can train</em> and
+    <em>what we can understand</em>, treating interpretability as a scientific problem where
+    mathematical structure — rather than heuristics — plays a central role.
+  </p>
+
+  <p class="note-link">
+    <a href="log-signature-attention.html">
+      Note: Log-signatures as structured compression and probes of representation geometry (March 2026)
+    </a>
+  </p>
+</section>
+
 
   <!-- ── Publications ────────────────────────────────────────────────────── -->
   <section id="publications">
