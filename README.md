@@ -2,20 +2,86 @@
 
 Personal academic site of Dr Rauan Akylzhanov.
 
-Built from CV via `build_site.sh`. Pure static HTML — no build step, no framework.
+Built from CV via `build_site.sh`. The site is mostly **pure static HTML** (no framework). The **blog** adds a small optional **Vercel** deployment for GitHub OAuth and publishing (see below).
 
-## Deploy
+## Deploy (GitHub Pages)
+
+The [GitHub Actions workflow](.github/workflows/static.yml) deploys the site to GitHub Pages from the **`academic`** branch.
 
 ```bash
-# First time
-git init
-git remote add origin git@github.com:ra312/ra312.github.io.git
-git checkout -b main
-
-# Every update
+git checkout academic
 git add -A
 git commit -m "update site"
-git push -u origin main
+git push origin academic
 ```
 
-GitHub Pages will serve `index.html` from the `main` branch root automatically.
+If you use another default branch locally, create or merge into `academic` before pushing. Pages serves the site root (`index.html`, `blog/`, etc.).
+
+## Blog
+
+### Layout
+
+| Path | Purpose |
+|------|---------|
+| [`blog/manifest.json`](blog/manifest.json) | Index of posts (`slug`, `title`, `date`, `visibility`, `contentPath`) |
+| [`blog/posts/`](blog/posts/) | **Public** posts as Markdown (`.md`) |
+| [`blog/private/`](blog/private/) | **Private** posts as encrypted JSON (ciphertext only; never plaintext) |
+| [`blog/index.html`](blog/index.html) | Blog listing |
+| [`blog/post.html`](blog/post.html) | Single post (public Markdown or decrypt private JSON) |
+| [`blog/admin.html`](blog/admin.html) | Publish UI (GitHub sign-in + API) |
+| [`blog/crypto.js`](blog/crypto.js) | Web Crypto helpers (AES-GCM + PBKDF2) for private posts |
+
+### Public posts
+
+1. **Git:** Add `blog/posts/<slug>.md`, add an entry to `blog/manifest.json` with `"visibility": "public"`, commit, and push to **`academic`**.
+2. **Web:** After configuring the API (below), open [`blog/admin.html`](blog/admin.html), sign in with GitHub, choose **Public**, and publish.
+
+### Private posts (author-only)
+
+Private bodies are encrypted **in the browser** with a **single master password** before upload. The server and git history only see ciphertext.
+
+1. **Web:** In [`blog/admin.html`](blog/admin.html), set `window.BLOG_API_BASE` to your Vercel URL (see below), sign in with GitHub, choose **Private**, enter the **master password** and Markdown body, then publish.
+2. **Reading:** Open [`blog/index.html`](blog/index.html) or a private post URL. Enter the same master password when prompted (stored only for the **browser session** in `sessionStorage`).
+
+**Security note:** This is appropriate for “only me” casual privacy on a static site. It is not banking-grade isolation (anyone with the encrypted file could try offline guesses).
+
+### Publishing API (Vercel)
+
+GitHub Pages cannot commit to your repo by itself. The repo includes serverless handlers under [`api/`](api/) (Node.js) for **GitHub OAuth** and **`POST /api/publish`**.
+
+1. **Create a GitHub OAuth App** (Settings → Developer settings):  
+   - **Authorization callback URL:** `https://<your-vercel-app>.vercel.app/api/callback`  
+   - **Homepage URL:** your Pages site or repo URL.
+
+2. **Deploy this repository to [Vercel](https://vercel.com)** (import the repo; no build command required for the API). Set environment variables:
+
+   | Variable | Description |
+   |----------|-------------|
+   | `GITHUB_CLIENT_ID` | OAuth App client ID |
+   | `GITHUB_CLIENT_SECRET` | OAuth App client secret |
+   | `JWT_SECRET` | Long random string for signing session cookies |
+   | `OAUTH_REDIRECT_URL` | Must match the OAuth app exactly, e.g. `https://<project>.vercel.app/api/callback` |
+   | `REPO_OWNER` | GitHub username or org |
+   | `REPO_NAME` | Repository name (e.g. `ra312.github.io`) |
+   | `TARGET_BRANCH` | `academic` (must match Pages deploy branch) |
+   | `ALLOWED_GITHUB_USER` | *(Optional)* Your GitHub login; if set, only this user can publish |
+
+3. **Configure the static site:** In [`blog/admin.html`](blog/admin.html), set:
+
+   ```html
+   <script>
+     window.BLOG_API_BASE = 'https://<your-vercel-app>.vercel.app';
+   </script>
+   ```
+
+   Commit and push to **`academic`**. Open `…/blog/admin.html` on GitHub Pages, click **Sign in with GitHub**, then publish.
+
+**CORS / cookies:** The publish API sets an **HttpOnly** session cookie on the Vercel origin. Your browser must send `credentials: 'include'` to `POST /api/publish` (the admin page does this). Use **HTTPS** on both Pages and Vercel.
+
+### Owner-only publishing
+
+Only the GitHub account that completes OAuth with **`repo`** scope can publish. If `ALLOWED_GITHUB_USER` is set, the API rejects other GitHub logins. This is separate from the **master password**, which only protects private **content** in the repo.
+
+## Legacy note
+
+Older README text referred to branch `main` and `build_site.sh` only. The live workflow uses **`academic`**; adjust if your fork differs.

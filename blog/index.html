@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog — Rauan Akylzhanov</title>
+  <meta name="description" content="Notes and posts." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #1c1917;
+      --muted: #57534e;
+      --rule: #e7e5e4;
+      --nav-bg: #f5f0eb;
+      --paper: #fafaf9;
+      --accent: #b45309;
+      --link: #44403c;
+      --max: 720px;
+      --sans: "Source Sans 3", "Source Sans Pro", -apple-system, sans-serif;
+    }
+    html { font-size: 17px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      font-weight: 300;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+      padding: 0 1.25rem;
+      padding-top: 3.25rem;
+    }
+    a { color: var(--link); text-decoration: none; transition: color .15s ease; }
+    a:hover { color: var(--accent); }
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--rule);
+      z-index: 100;
+      padding: .65rem 1.25rem;
+    }
+    nav ul {
+      max-width: var(--max);
+      margin: 0 auto;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1.25rem;
+    }
+    nav a { font-size: .88rem; font-weight: 400; color: var(--muted); }
+    nav a:hover { color: var(--accent); }
+    .page { max-width: var(--max); margin: 0 auto; padding: 2rem 0 4rem; }
+    .back {
+      font-size: .88rem;
+      color: var(--muted);
+      display: inline-block;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    .back:hover { color: var(--accent); border-color: var(--accent); }
+    h1 {
+      font-size: clamp(1.75rem, 4vw, 2.15rem);
+      font-weight: 400;
+      letter-spacing: -.02em;
+      margin-bottom: .5rem;
+    }
+    .lead { color: var(--muted); margin-bottom: 2rem; font-size: .95rem; }
+    .post-list { list-style: none; }
+    .post-list li {
+      border-bottom: 1px solid var(--rule);
+      padding: 1rem 0;
+    }
+    .post-list a { font-weight: 400; }
+    .post-meta { font-size: .8rem; color: var(--muted); margin-top: .35rem; }
+    .tag-pill {
+      display: inline-block;
+      background: rgba(180, 83, 9, .08);
+      color: var(--accent);
+      padding: .12rem .5rem;
+      border-radius: 2px;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      margin-right: .5rem;
+    }
+    .locked {
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .locked:hover { color: var(--accent); }
+    .admin-link {
+      margin-top: 2.5rem;
+      font-size: .85rem;
+      color: var(--muted);
+    }
+    dialog {
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 1.25rem 1.5rem;
+      max-width: 420px;
+      background: var(--paper);
+      box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    }
+    dialog::backdrop { background: rgba(28, 25, 23, .35); }
+    dialog h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
+    dialog label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .35rem; }
+    dialog input[type="password"] {
+      width: 100%;
+      padding: .5rem .65rem;
+      font-family: var(--sans);
+      font-size: .95rem;
+      border: 1px solid var(--rule);
+      border-radius: 2px;
+      margin-bottom: 1rem;
+    }
+    .dialog-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: .5rem; }
+    button {
+      font-family: var(--sans);
+      font-size: .88rem;
+      padding: .45rem 1rem;
+      border-radius: 2px;
+      cursor: pointer;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+    }
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    button:hover { opacity: .92; }
+    .err { color: #b91c1c; font-size: .85rem; margin-top: .5rem; }
+    .empty { color: var(--muted); font-style: italic; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul>
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="index.html">Blog</a></li>
+  </ul>
+</nav>
+
+<div class="page">
+  <a class="back" href="../index.html">← Back to home</a>
+
+  <h1>Blog</h1>
+  <p class="lead">Public notes and private drafts (unlock with your master password).</p>
+
+  <ul class="post-list" id="post-list">
+    <li class="empty">Loading…</li>
+  </ul>
+
+  <p class="admin-link"><a href="admin.html">Publish or edit posts (GitHub)</a></p>
+</div>
+
+<dialog id="unlock-dialog" aria-labelledby="unlock-title">
+  <h2 id="unlock-title">Unlock private posts</h2>
+  <p style="font-size:.9rem;color:var(--muted);margin-bottom:1rem;">Enter the same master password used when publishing private posts. It is kept only in this browser session.</p>
+  <form id="unlock-form" method="dialog">
+    <label for="master-pw">Master password</label>
+    <input type="password" id="master-pw" autocomplete="current-password" required />
+    <p class="err" id="unlock-err" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" id="unlock-cancel">Cancel</button>
+      <button type="submit" class="primary">Unlock</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  var SESSION_KEY = 'blog_master_pwd';
+  var UNLOCK_FLAG = 'blog_private_unlocked';
+
+  function isUnlocked() {
+    return sessionStorage.getItem(UNLOCK_FLAG) === '1' && !!sessionStorage.getItem(SESSION_KEY);
+  }
+
+  function setUnlocked(pwd) {
+    sessionStorage.setItem(SESSION_KEY, pwd);
+    sessionStorage.setItem(UNLOCK_FLAG, '1');
+  }
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function renderList(manifest) {
+    var ul = document.getElementById('post-list');
+    ul.innerHTML = '';
+    var posts = (manifest && manifest.posts) ? manifest.posts : [];
+    if (!posts.length) {
+      ul.innerHTML = '<li class="empty">No posts yet. Use the admin link below to publish.</li>';
+      return;
+    }
+    posts.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+    posts.forEach(function (p) {
+      var li = document.createElement('li');
+      var unlocked = isUnlocked();
+
+      if (p.visibility === 'private') {
+        var row = document.createElement('div');
+        row.className = unlocked ? '' : 'locked';
+        if (unlocked) {
+          var a = document.createElement('a');
+          a.href = 'post.html?slug=' + encodeURIComponent(p.slug);
+          a.textContent = p.title || p.slug;
+          row.appendChild(a);
+        } else {
+          row.textContent = '🔒 ' + (p.title || 'Private post');
+          row.addEventListener('click', function () {
+            document.getElementById('unlock-dialog').showModal();
+          });
+        }
+        li.appendChild(row);
+        var meta = document.createElement('div');
+        meta.className = 'post-meta';
+        meta.innerHTML = '<span class="tag-pill">Private</span>' + escapeHtml(p.date || '') + ' · ' + escapeHtml(p.slug);
+        li.appendChild(meta);
+      } else {
+        var link = document.createElement('a');
+        link.href = 'post.html?slug=' + encodeURIComponent(p.slug);
+        link.textContent = p.title || p.slug;
+        li.appendChild(link);
+        var meta2 = document.createElement('div');
+        meta2.className = 'post-meta';
+        meta2.innerHTML = '<span class="tag-pill">Public</span>' + escapeHtml(p.date || '') + ' · ' + escapeHtml(p.slug);
+        li.appendChild(meta2);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  fetch('manifest.json', { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(renderList)
+    .catch(function () {
+      document.getElementById('post-list').innerHTML = '<li class="empty">Could not load manifest.</li>';
+    });
+
+  document.getElementById('unlock-cancel').addEventListener('click', function () {
+    document.getElementById('unlock-dialog').close();
+  });
+
+  document.getElementById('unlock-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var pw = document.getElementById('master-pw').value;
+    var err = document.getElementById('unlock-err');
+    err.hidden = true;
+    if (!pw) {
+      err.textContent = 'Password required.';
+      err.hidden = false;
+      return;
+    }
+    setUnlocked(pw);
+    document.getElementById('master-pw').value = '';
+    document.getElementById('unlock-dialog').close();
+    fetch('manifest.json', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(renderList);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog post — Rauan Akylzhanov</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="crypto.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #1c1917;
+      --muted: #57534e;
+      --rule: #e7e5e4;
+      --nav-bg: #f5f0eb;
+      --paper: #fafaf9;
+      --accent: #b45309;
+      --link: #44403c;
+      --code-bg: #292524;
+      --code-fg: #e7e5e4;
+      --sans: "Source Sans 3", "Source Sans Pro", -apple-system, sans-serif;
+      --mono: "Source Code Pro", ui-monospace, monospace;
+      --max: 700px;
+    }
+    html { font-size: 17px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      font-weight: 300;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+      padding: 0 1.25rem;
+      padding-top: 3.25rem;
+    }
+    a { color: var(--link); text-decoration: none; transition: color .15s ease; }
+    a:hover { color: var(--accent); }
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--rule);
+      z-index: 100;
+      padding: .65rem 1.25rem;
+    }
+    nav ul {
+      max-width: var(--max);
+      margin: 0 auto;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1.25rem;
+    }
+    nav a { font-size: .88rem; font-weight: 400; color: var(--muted); }
+    nav a:hover { color: var(--accent); }
+    .page { max-width: var(--max); margin: 0 auto; padding: 2rem 0 4rem; }
+    .back {
+      font-size: .88rem;
+      color: var(--muted);
+      display: inline-block;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    .back:hover { color: var(--accent); border-color: var(--accent); }
+    .post-header { margin-bottom: 2rem; }
+    .post-meta { font-size: .8rem; color: var(--muted); margin-bottom: .75rem; }
+    .tag-pill {
+      background: rgba(180, 83, 9, .08);
+      color: var(--accent);
+      padding: .12rem .5rem;
+      border-radius: 2px;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      margin-right: .5rem;
+    }
+    h1.post-title {
+      font-size: clamp(1.75rem, 4.5vw, 2.35rem);
+      font-weight: 400;
+      letter-spacing: -.02em;
+      line-height: 1.2;
+    }
+    article { font-size: .98rem; }
+    article p { margin-bottom: 1.15rem; }
+    article h2 { font-size: 1.3rem; font-weight: 400; margin: 2rem 0 .85rem; color: var(--ink); }
+    article h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 .5rem; }
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      font-family: var(--mono);
+      font-size: .78rem;
+      line-height: 1.6;
+      padding: 1.1rem 1.25rem;
+      border-radius: 2px;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      border-left: 3px solid var(--accent);
+    }
+    code {
+      font-family: var(--mono);
+      font-size: .85em;
+      background: rgba(180, 83, 9, .1);
+      color: var(--accent);
+      padding: .08em .3em;
+      border-radius: 2px;
+      font-weight: 500;
+    }
+    pre code { background: none; color: inherit; font-size: inherit; padding: 0; font-weight: 400; }
+    article ul, article ol { margin: 0 0 1.15rem 1.25rem; }
+    .err { color: #b91c1c; margin-top: 1rem; }
+    dialog {
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 1.25rem 1.5rem;
+      max-width: 420px;
+      background: var(--paper);
+      box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    }
+    dialog::backdrop { background: rgba(28, 25, 23, .35); }
+    dialog h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; }
+    dialog label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: .35rem; }
+    dialog input[type="password"] {
+      width: 100%;
+      padding: .5rem .65rem;
+      font-family: var(--sans);
+      font-size: .95rem;
+      border: 1px solid var(--rule);
+      border-radius: 2px;
+      margin-bottom: 1rem;
+    }
+    .dialog-actions { display: flex; gap: .75rem; justify-content: flex-end; margin-top: .5rem; }
+    button {
+      font-family: var(--sans);
+      font-size: .88rem;
+      padding: .45rem 1rem;
+      border-radius: 2px;
+      cursor: pointer;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+    }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <ul>
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="index.html">Blog</a></li>
+  </ul>
+</nav>
+
+<div class="page">
+  <a class="back" href="index.html">← Blog</a>
+
+  <header class="post-header" id="post-header" hidden>
+    <div class="post-meta" id="post-meta"></div>
+    <h1 class="post-title" id="post-title"></h1>
+  </header>
+
+  <article id="content"></article>
+  <p class="err" id="error"></p>
+</div>
+
+<dialog id="unlock-dialog">
+  <h2>Unlock private post</h2>
+  <form id="unlock-form">
+    <label for="master-pw">Master password</label>
+    <input type="password" id="master-pw" autocomplete="current-password" required />
+    <div class="dialog-actions">
+      <button type="button" id="unlock-cancel">Cancel</button>
+      <button type="submit" class="primary">Decrypt</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  var SESSION_KEY = 'blog_master_pwd';
+  var UNLOCK_FLAG = 'blog_private_unlocked';
+
+  function params() {
+    var q = new URLSearchParams(window.location.search);
+    return { slug: q.get('slug') || '' };
+  }
+
+  function showError(msg) {
+    var el = document.getElementById('error');
+    el.textContent = msg;
+  }
+
+  function renderMarkdown(md) {
+    var article = document.getElementById('content');
+    article.innerHTML = typeof marked !== 'undefined' && marked.parse
+      ? marked.parse(md)
+      : '<pre>' + md.replace(/</g, '&lt;') + '</pre>';
+  }
+
+  function showPost(meta, title) {
+    document.getElementById('post-header').hidden = false;
+    document.getElementById('post-title').textContent = title || meta.slug;
+    var pill = meta.visibility === 'private'
+      ? '<span class="tag-pill">Private</span>'
+      : '<span class="tag-pill">Public</span>';
+    document.getElementById('post-meta').innerHTML = pill + (meta.date || '');
+  }
+
+  function loadPrivate(blob, pwd) {
+    return BlogCrypto.decryptPrivateBody(pwd, blob).then(function (text) {
+      renderMarkdown(text);
+    });
+  }
+
+  function run() {
+    var slug = params().slug;
+    if (!slug) {
+      showError('Missing slug.');
+      return;
+    }
+
+    fetch('manifest.json', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (manifest) {
+        var posts = manifest.posts || [];
+        var meta = posts.filter(function (p) { return p.slug === slug; })[0];
+        if (!meta) {
+          showError('Post not found in manifest.');
+          return;
+        }
+        showPost(meta, meta.title);
+
+        if (meta.visibility !== 'private') {
+          return fetch('posts/' + encodeURIComponent(slug) + '.md', { cache: 'no-store' })
+            .then(function (r) {
+              if (!r.ok) throw new Error('Could not load post file.');
+              return r.text();
+            })
+            .then(renderMarkdown);
+        }
+
+        return fetch('private/' + encodeURIComponent(slug) + '.json', { cache: 'no-store' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('Could not load encrypted post.');
+            return r.json();
+          })
+          .then(function (blob) {
+            var pwd = sessionStorage.getItem(SESSION_KEY);
+            if (sessionStorage.getItem(UNLOCK_FLAG) === '1' && pwd) {
+              return loadPrivate(blob, pwd).catch(function () {
+                sessionStorage.removeItem(SESSION_KEY);
+                sessionStorage.removeItem(UNLOCK_FLAG);
+                return promptDecrypt(blob, meta);
+              });
+            }
+            return promptDecrypt(blob, meta);
+          });
+      })
+      .catch(function (e) {
+        showError(e.message || String(e));
+      });
+  }
+
+  function promptDecrypt(blob, meta) {
+    return new Promise(function (resolve, reject) {
+      var dlg = document.getElementById('unlock-dialog');
+      var form = document.getElementById('unlock-form');
+
+      function cleanup() {
+        form.removeEventListener('submit', onSubmit);
+        document.getElementById('unlock-cancel').removeEventListener('click', onCancel);
+      }
+
+      function onCancel() {
+        cleanup();
+        dlg.close();
+        showError('Private post is locked.');
+        reject(new Error('cancelled'));
+      }
+
+      function onSubmit(e) {
+        e.preventDefault();
+        var pwd = document.getElementById('master-pw').value;
+        document.getElementById('master-pw').value = '';
+        loadPrivate(blob, pwd)
+          .then(function () {
+            sessionStorage.setItem(SESSION_KEY, pwd);
+            sessionStorage.setItem('blog_private_unlocked', '1');
+            cleanup();
+            dlg.close();
+            resolve();
+          })
+          .catch(function () {
+            showError('Wrong password or corrupted data.');
+          });
+      }
+
+      document.getElementById('unlock-cancel').addEventListener('click', onCancel);
+      form.addEventListener('submit', onSubmit);
+      dlg.showModal();
+    });
+  }
+
+  run();
+})();
+</script>
+</body>
+</html>
