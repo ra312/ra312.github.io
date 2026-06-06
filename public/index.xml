@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Dr Rauan Akylzhanov</title><link>https://ra312.github.io/</link><description>Recent content on Dr Rauan Akylzhanov</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sun, 01 Mar 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://ra312.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>Compressing Long Contexts with Log-Signatures</title><link>https://ra312.github.io/blog/log-signature-attention/</link><pubDate>Sun, 01 Mar 2026 00:00:00 +0000</pubDate><guid>https://ra312.github.io/blog/log-signature-attention/</guid><description>&lt;header class="post-header">
+ &lt;div class="post-meta">
+ &lt;span>March 2026&lt;/span>
+ &lt;span class="tag-pill">rough paths&lt;/span>
+ &lt;span class="tag-pill">transformers&lt;/span>
+ &lt;span class="tag-pill">TPU / JAX&lt;/span>
+ &lt;/div>
+&lt;pre>&lt;code>&amp;lt;h1 class=&amp;quot;post-title&amp;quot;&amp;gt;Compressing Long Contexts&amp;lt;br&amp;gt;with &amp;lt;em&amp;gt;Log-Signatures&amp;lt;/em&amp;gt;&amp;lt;/h1&amp;gt;
+&amp;lt;p class=&amp;quot;post-subtitle&amp;quot;&amp;gt;
+ Can a century-old idea from stochastic analysis — the path signature — solve the O(n²)
+ attention bottleneck? A concrete proposal with working JAX code.
+&amp;lt;/p&amp;gt;
+&lt;/code>&lt;/pre>
+ &lt;/header>
+ &lt;!-- ── Article body ── -->
+ &lt;article>
+&lt;pre>&lt;code>&amp;lt;h2&amp;gt;&amp;lt;span class=&amp;quot;chev&amp;quot;&amp;gt;›&amp;lt;/span&amp;gt;The Problem&amp;lt;/h2&amp;gt;
+
+&amp;lt;p&amp;gt;
+ Standard self-attention computes pairwise interactions between every token and every other
+ token. That is O(n²) in sequence length. At 1 million tokens, full attention is
+ simply infeasible. The usual responses — sparse attention, linear attention, sliding windows,
+ state-space models — all approximate or restrict &amp;lt;em&amp;gt;which&amp;lt;/em&amp;gt; tokens can interact.
+&amp;lt;/p&amp;gt;
+
+&amp;lt;p&amp;gt;
+ I want to ask a different question. Instead of &amp;quot;which token pairs should interact?&amp;quot;, ask:
+ &amp;lt;strong&amp;gt;&amp;quot;what is the geometric summary of the path that tokens trace through embedding
+ space?&amp;quot;&amp;lt;/strong&amp;gt; That summary — the &amp;lt;em&amp;gt;log-signature&amp;lt;/em&amp;gt; — is a fixed-size object,
+ independent of sequence length. Attention over summaries instead of raw tokens breaks
+ the O(n²) barrier.
+&amp;lt;/p&amp;gt;
+
+&amp;lt;h2&amp;gt;&amp;lt;span class=&amp;quot;chev&amp;quot;&amp;gt;›&amp;lt;/span&amp;gt;What Is a Log-Signature?&amp;lt;/h2&amp;gt;
+
+&amp;lt;p&amp;gt;
+ Treat the sequence of token embeddings X₀, X₁, …, Xₙ ∈ ℝ&amp;lt;sup&amp;gt;d&amp;lt;/sup&amp;gt; as a
+ piecewise-linear path in ℝ&amp;lt;sup&amp;gt;d&amp;lt;/sup&amp;gt;. The &amp;lt;em&amp;gt;signature&amp;lt;/em&amp;gt; of this path is an infinite
+ series of iterated integrals that encodes its shape completely — including the
+ &amp;lt;em&amp;gt;order&amp;lt;/em&amp;gt; in which dimensions are traversed. The &amp;lt;em&amp;gt;log-signature&amp;lt;/em&amp;gt; is its
+ logarithm in the tensor algebra: it lives in the free Lie algebra over ℝ&amp;lt;sup&amp;gt;d&amp;lt;/sup&amp;gt; and
+ is strictly more compact.
+&amp;lt;/p&amp;gt;
+
+&amp;lt;div class=&amp;quot;callout&amp;quot;&amp;gt;
+ &amp;lt;div class=&amp;quot;label&amp;quot;&amp;gt;Key property&amp;lt;/div&amp;gt;
+ The truncated log-signature at depth k is a vector of fixed size
+ N&amp;lt;sub&amp;gt;Lie&amp;lt;/sub&amp;gt;(d, k) — independent of sequence length n.
+ For d = 512, k = 2: size = 512 + 512·511/2 ≈ 131K, far smaller than the raw sequence.
+ For k = 1: just 512. Depth controls the expressiveness/cost tradeoff.
+&amp;lt;/div&amp;gt;
+
+&amp;lt;h3&amp;gt;A Concrete Example (d = 2, k = 2)&amp;lt;/h3&amp;gt;
+
+&amp;lt;p&amp;gt;
+ Four token embeddings in ℝ²: X₀ = (0,0), X₁ = (1,2), X₂ = (3,1), X₃ = (4,4).
+&amp;lt;/p&amp;gt;
+
+&amp;lt;div class=&amp;quot;math-block&amp;quot;&amp;gt;
+&lt;/code>&lt;/pre>
+&lt;p>Increments: δX₁ = (1, 2) δX₂ = (2, −1) δX₃ = (1, 3)&lt;/p></description></item></channel></rss>

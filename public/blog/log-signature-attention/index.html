@@ -1,0 +1,252 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Compressing Long Contexts with Log-Signatures — Dr Rauan Akylzhanov</title>
+<meta name=description content="Personal site of Dr Rauan Akylzhanov — pure mathematician, ML researcher, and senior research engineer."><link rel=preconnect href=https://fonts.googleapis.com><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&family=Source+Code+Pro:wght@400;500&display=swap" rel=stylesheet><link rel=stylesheet href=/css/site.css><link rel=stylesheet href=https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css crossorigin=anonymous><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js crossorigin=anonymous></script><script defer src=https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js crossorigin=anonymous onload='renderMathInElement(document.body,{delimiters:[{left:"\\[",right:"\\]",display:!0},{left:"\\(",right:"\\)",display:!1},{left:"$$",right:"$$",display:!0}],throwOnError:!1})'></script></head><body class=inner><div class=page><a class=back href=/>← ra312.github.io</a><article class=longform><header class=post-header><div class=post-meta><span>March 2026</span>
+<span class=tag-pill>rough paths</span>
+<span class=tag-pill>transformers</span>
+<span class=tag-pill>TPU / JAX</span></div><pre><code>&lt;h1 class=&quot;post-title&quot;&gt;Compressing Long Contexts&lt;br&gt;with &lt;em&gt;Log-Signatures&lt;/em&gt;&lt;/h1&gt;
+&lt;p class=&quot;post-subtitle&quot;&gt;
+  Can a century-old idea from stochastic analysis — the path signature — solve the O(n²)
+  attention bottleneck? A concrete proposal with working JAX code.
+&lt;/p&gt;
+</code></pre></header><article><pre><code>&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;The Problem&lt;/h2&gt;
+
+&lt;p&gt;
+  Standard self-attention computes pairwise interactions between every token and every other
+  token. That is O(n²) in sequence length. At 1 million tokens, full attention is
+  simply infeasible. The usual responses — sparse attention, linear attention, sliding windows,
+  state-space models — all approximate or restrict &lt;em&gt;which&lt;/em&gt; tokens can interact.
+&lt;/p&gt;
+
+&lt;p&gt;
+  I want to ask a different question. Instead of &quot;which token pairs should interact?&quot;, ask:
+  &lt;strong&gt;&quot;what is the geometric summary of the path that tokens trace through embedding
+  space?&quot;&lt;/strong&gt; That summary — the &lt;em&gt;log-signature&lt;/em&gt; — is a fixed-size object,
+  independent of sequence length. Attention over summaries instead of raw tokens breaks
+  the O(n²) barrier.
+&lt;/p&gt;
+
+&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;What Is a Log-Signature?&lt;/h2&gt;
+
+&lt;p&gt;
+  Treat the sequence of token embeddings X₀, X₁, …, Xₙ ∈ ℝ&lt;sup&gt;d&lt;/sup&gt; as a
+  piecewise-linear path in ℝ&lt;sup&gt;d&lt;/sup&gt;. The &lt;em&gt;signature&lt;/em&gt; of this path is an infinite
+  series of iterated integrals that encodes its shape completely — including the
+  &lt;em&gt;order&lt;/em&gt; in which dimensions are traversed. The &lt;em&gt;log-signature&lt;/em&gt; is its
+  logarithm in the tensor algebra: it lives in the free Lie algebra over ℝ&lt;sup&gt;d&lt;/sup&gt; and
+  is strictly more compact.
+&lt;/p&gt;
+
+&lt;div class=&quot;callout&quot;&gt;
+  &lt;div class=&quot;label&quot;&gt;Key property&lt;/div&gt;
+  The truncated log-signature at depth k is a vector of fixed size
+  N&lt;sub&gt;Lie&lt;/sub&gt;(d, k) — independent of sequence length n.
+  For d = 512, k = 2: size = 512 + 512·511/2 ≈ 131K, far smaller than the raw sequence.
+  For k = 1: just 512. Depth controls the expressiveness/cost tradeoff.
+&lt;/div&gt;
+
+&lt;h3&gt;A Concrete Example (d = 2, k = 2)&lt;/h3&gt;
+
+&lt;p&gt;
+  Four token embeddings in ℝ²: X₀ = (0,0), X₁ = (1,2), X₂ = (3,1), X₃ = (4,4).
+&lt;/p&gt;
+
+&lt;div class=&quot;math-block&quot;&gt;
+</code></pre><p>Increments: δX₁ = (1, 2) δX₂ = (2, −1) δX₃ = (1, 3)</p><p>Depth-1 (total displacement):
+L¹ = 1+2+1 = 4 L² = 2+(−1)+3 = 4
+→ (4, 4) — order-blind, a plain sum</p><p>Depth-2 (pairwise ordered interactions):
+S¹² = Σ_{p&lt;q} δX_p¹ · δX_q² = (1)(−1)+(1)(3)+(2)(3) = 8
+S²¹ = Σ_{p&lt;q} δX_p² · δX_q¹ = (2)(2)+(2)(1)+(−1)(1) = 5</p><p>Log-sig depth-2: L¹² = S¹² − S²¹ = 8 − 5 = 3 (only the antisymmetric part)</p><p>Final: LogSig(X) = (4, 4, 3) — 3 numbers instead of 4 + 4×4 = 20</div></p><pre><code>&lt;p&gt;
+  The single depth-2 number, L¹² = 3 &amp;gt; 0, tells us the path tended to move in dimension 1
+  &lt;em&gt;before&lt;/em&gt; dimension 2. Reverse the token order and you get −3. The log-signature is
+  &lt;strong&gt;order-sensitive in a compact, algebraically principled way&lt;/strong&gt; — which is
+  exactly what a positional encoding should be.
+&lt;/p&gt;
+
+&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;Two Ways to Use This in a Transformer&lt;/h2&gt;
+
+&lt;h3&gt;Part 1 — Context Compression&lt;/h3&gt;
+
+&lt;p&gt;
+  Divide the sequence into chunks of size &lt;em&gt;w&lt;/em&gt; (say 64–128 tokens). Compute the
+  log-signature of each chunk. Then combine adjacent chunks hierarchically using the
+  &lt;em&gt;Baker–Campbell–Hausdorff (BCH)&lt;/em&gt; formula, which is exactly the rule for composing
+  log-signatures of concatenated paths. The result is a binary tree of summaries:
+&lt;/p&gt;
+
+&lt;div class=&quot;diagram&quot;&gt;
+</code></pre><p>tokens: [t1 t2 t3 t4] [t5 t6 t7 t8] [t9 t10 t11 t12] [t13 t14 t15 t16]
+└── LS ──┘ └── LS ──┘ └── LS ──┘ └── LS ──┘
+└───── BCH ──────┘ └────── BCH ──────┘
+└──────────── BCH ────────────────┘</div></p><pre><code>&lt;p&gt;
+  Attention runs over the &lt;em&gt;m = n/w&lt;/em&gt; leaf summaries (or the full hierarchy of
+  summaries at multiple scales), not over the n raw tokens. Cost:
+&lt;/p&gt;
+
+&lt;div class=&quot;math-block&quot;&gt;
+</code></pre><p>Build hierarchy: O(n · poly(d, k)) ← linear in n
+Attention: O(m² · d) where m = n/w ← quadratic in m, not n</p><p>For n = 1M, w = 64: m = 15,625 — still large. Use linear attention over summaries → O(m·d).
+Total: O(n · poly(d, k)) ← subquadratic in n overall</div></p><pre><code>&lt;h3&gt;Part 2 — Positional Encoding&lt;/h3&gt;
+
+&lt;p&gt;
+  For each position i, compute the log-signature of the path from position 0 to i
+  incrementally using Chen's identity:
+&lt;/p&gt;
+
+&lt;div class=&quot;math-block&quot;&gt;
+</code></pre><p>LogSig(0→i) = BCH( LogSig(0→i−1), LogSig(i−1→i) )</div></p><pre><code>&lt;p&gt;
+  This costs O(poly(d,k)) per position and O(n·poly(d,k)) total. The resulting vector is
+  injected into the embedding layer as the positional encoding — replacing or augmenting
+  sinusoidal or learned encodings. Because it derives from the actual token embedding path
+  rather than just the index, it is &lt;strong&gt;content-aware&lt;/strong&gt;, not purely positional.
+&lt;/p&gt;
+
+&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;Why TPUs Love This&lt;/h2&gt;
+
+&lt;p&gt;
+  The BCH combination rule at depth k=2 is:
+&lt;/p&gt;
+
+&lt;div class=&quot;math-block&quot;&gt;
+</code></pre><p>combine((A₁, B₁), (A₂, B₂)) = (A₁ + A₂, B₁ + B₂ + A₁ ⊗ A₂)</div></p><pre><code>&lt;p&gt;
+  The outer product A₁ ⊗ A₂ is a rank-1 matrix multiplication — exactly what the TPU's
+  &lt;strong&gt;MXU (Matrix Multiply Unit)&lt;/strong&gt; is designed for. And because every tensor in
+  the tree has &lt;em&gt;fixed shape&lt;/em&gt; N&lt;sub&gt;Lie&lt;/sub&gt;(d,k), XLA can compile the entire
+  computation without dynamic shapes.
+&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;&lt;th&gt;Step&lt;/th&gt;&lt;th&gt;Operations&lt;/th&gt;&lt;th&gt;Parallelism&lt;/th&gt;&lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;&lt;td&gt;Increments&lt;/td&gt;&lt;td&gt;O(nd)&lt;/td&gt;&lt;td&gt;fully parallel&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;Leaf init&lt;/td&gt;&lt;td&gt;O(nd²) outer products&lt;/td&gt;&lt;td&gt;fully parallel&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;Parallel scan&lt;/td&gt;&lt;td&gt;O(n·d²) total&lt;/td&gt;&lt;td&gt;O(n/2) per step&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;Antisymmetrize&lt;/td&gt;&lt;td&gt;O(nd²)&lt;/td&gt;&lt;td&gt;fully parallel&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;td&gt;&lt;strong&gt;Total&lt;/strong&gt;&lt;/td&gt;&lt;td&gt;&lt;strong&gt;O(nd²)&lt;/strong&gt;&lt;/td&gt;&lt;td&gt;&lt;strong&gt;O(log n) depth&lt;/strong&gt;&lt;/td&gt;&lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;
+  Naive sequential scan: same O(nd²) work but O(n) depth. Using
+  &lt;code&gt;jax.lax.associative_scan&lt;/code&gt; reduces depth to O(log n) — for n = 1M that
+  is 20 parallel steps instead of 1 million.
+&lt;/p&gt;
+
+&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;Working JAX Code&lt;/h2&gt;
+
+&lt;p&gt;
+  Here is a minimal, runnable depth-2 log-signature via associative scan in JAX:
+&lt;/p&gt;
+</code></pre><pre><code>import jax
+import jax.numpy as jnp
+import functools
+from jax import vmap
+
+def combine(seg1, seg2):
+    """BCH combination at depth 2.
+    A: depth-1 (displacement), B: depth-2 (area / Lévy bracket).
+    """
+    A1, B1 = seg1
+    A2, B2 = seg2
+    A = A1 + A2
+    B = B1 + B2 + jnp.outer(A1, A2)   # outer product → MXU
+    return A, B
+
+@functools.partial(jax.jit)
+def log_signature_k2(tokens):
+    """
+    tokens: (n, d)  — sequence of token embeddings
+    returns: (A, L) where
+      A : (n, d)    depth-1 prefix log-sigs
+      L : (n, d, d) depth-2 antisymmetric part (Lie bracket)
+    """
+    deltas = jnp.diff(tokens, axis=0)           # (n-1, d)
+    A_init = deltas
+    B_init = vmap(jnp.outer)(deltas, deltas)    # (n-1, d, d)
+
+    # O(log n) parallel depth via associative scan
+    A_scan, B_scan = jax.lax.associative_scan(combine, (A_init, B_init))
+
+    # Log-signature depth-2: antisymmetric part only
+    L2 = B_scan - jnp.transpose(B_scan, (0, 2, 1))
+    return A_scan, L2
+
+# Quick test
+key = jax.random.PRNGKey(0)
+tokens = jax.random.normal(key, (1024, 64))   # 1024 tokens, 64-dim
+A, L = log_signature_k2(tokens)
+print(A.shape, L.shape)   # (1023, 64)  (1023, 64, 64)
+</code></pre><pre><code>&lt;p&gt;
+  The &lt;code&gt;combine&lt;/code&gt; function is the entire BCH rule at depth 2. XLA compiles this
+  into fused MXU operations. A custom Pallas kernel can further fuse this scan with the
+  subsequent attention to avoid HBM round-trips entirely.
+&lt;/p&gt;
+
+&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;Relation to Existing Work&lt;/h2&gt;
+
+&lt;p&gt;
+  &lt;strong&gt;Rough Transformers&lt;/strong&gt; (Moreno-Pino et al., NeurIPS 2024) use signature
+  patching and multi-view attention for time series — an important precedent — but do not
+  target TPU memory hierarchy or hierarchical BCH combination.
+  &lt;strong&gt;Deep Signature Transforms&lt;/strong&gt; (Kidger et al., NeurIPS 2019) integrate
+  signatures as learnable layers but without attention or long-context goals.
+  &lt;strong&gt;Flash Attention, Mamba, RWKV&lt;/strong&gt; all reduce the O(n²) cost via sparsity,
+  linearization, or recurrence — orthogonal to the geometric compression approach here.
+&lt;/p&gt;
+
+&lt;p&gt;
+  The specific combination — &lt;em&gt;hierarchical BCH as context compression, hardware-aware
+  Pallas kernel, and log-signature-derived positional encoding&lt;/em&gt; — is, to my knowledge,
+  new. The key open question is empirical: does depth-k truncation retain enough information
+  for typical text tasks? For time series (Rough Transformers) the answer seems yes; for
+  language the evidence is thinner and worth measuring carefully.
+&lt;/p&gt;
+
+&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;Honest Open Questions&lt;/h2&gt;
+
+&lt;p&gt;
+  &lt;strong&gt;Truncation depth.&lt;/strong&gt; Signatures truncated at depth k lose higher-order
+  interactions. Sufficient depth for text is not well-established; better understood in
+  financial time series. This needs ablation.
+&lt;/p&gt;
+
+&lt;p&gt;
+  &lt;strong&gt;Path regularity.&lt;/strong&gt; Rough path theory assumes some regularity (Hölder
+  continuity) of the path. Token embeddings in high dimensions may not satisfy this in a
+  useful sense — the theoretical guarantees may weaken. Empirical validation on
+  long-context benchmarks (PG19, Long-Range Arena) is necessary.
+&lt;/p&gt;
+
+&lt;p&gt;
+  &lt;strong&gt;Lie algebra dimension growth.&lt;/strong&gt; N&lt;sub&gt;Lie&lt;/sub&gt;(d, k) grows with both d
+  and k. For d = 512, k = 3: roughly 22M basis elements — impractical without aggressive
+  projection. Depth-2 is the realistic starting point; sparse Lie algebra representations
+  are a possible extension.
+&lt;/p&gt;
+
+&lt;div class=&quot;callout&quot;&gt;
+  &lt;div class=&quot;label&quot;&gt;Status&lt;/div&gt;
+  This is a research proposal submitted to the 2026 Google TPU Awards program.
+  Code, benchmarks, and a full write-up will be released publicly if the project proceeds.
+  I welcome discussion — reach me at akylzhanov.r@gmail.com.
+&lt;/div&gt;
+
+&lt;h2&gt;&lt;span class=&quot;chev&quot;&gt;›&lt;/span&gt;References&lt;/h2&gt;
+
+&lt;p style=&quot;font-size:.9rem; line-height:1.85; color:var(--ink);&quot;&gt;
+  Moreno-Pino et al., &lt;em&gt;Rough Transformers&lt;/em&gt;, NeurIPS 2024.&lt;br&gt;
+  Kidger, Bonnier, Perez Arribas, Salvi, Lyons, &lt;em&gt;Deep Signature Transforms&lt;/em&gt;, NeurIPS 2019.&lt;br&gt;
+  Chevyrev &amp;amp; Kormilitzin, &lt;em&gt;A primer on the signature method in machine learning&lt;/em&gt;, 2016.&lt;br&gt;
+  Lyons, &lt;em&gt;Rough paths, signatures and the modelling of functions on streams&lt;/em&gt;, ICM 2014.&lt;br&gt;
+  Casas &amp;amp; Murua, &lt;em&gt;An efficient algorithm for computing the BCH series&lt;/em&gt;, 2009.&lt;br&gt;
+  Google JAX / Pallas documentation.
+&lt;/p&gt;
+
+&lt;p class=&quot;aside&quot;&gt;
+  I am a mathematician turned ML researcher. My background is in harmonic analysis on
+  non-commutative spaces (quantum groups, von Neumann algebras) — which is how I ended up
+  thinking about paths and algebras in the context of language models.
+  More at &lt;a href=&quot;/&quot;&gt;ra312.github.io&lt;/a&gt;.
+&lt;/p&gt;
+</code></pre></article><footer class=post-footer><span>© 2026 Rauan Akylzhanov</span>
+<a href=/>← back to site</a></footer></div></body></html>
