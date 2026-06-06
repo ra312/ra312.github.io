@@ -268,7 +268,7 @@
       return;
     }
 
-    fetch('manifest.json', { cache: 'no-store' })
+    fetch('manifest.json?ts=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (manifest) {
         var posts = manifest.posts || [];

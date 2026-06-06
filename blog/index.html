@@ -244,8 +244,12 @@
     });
   }
 
-  fetch('manifest.json', { cache: 'no-store' })
-    .then(function (r) { return r.json(); })
+  function loadManifest() {
+    return fetch('manifest.json?ts=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.json(); });
+  }
+
+  loadManifest()
     .then(renderList)
     .catch(function () {
       document.getElementById('post-list').innerHTML = '<li class="empty">Could not load manifest.</li>';
@@ -268,8 +272,7 @@
     setUnlocked(pw);
     document.getElementById('master-pw').value = '';
     document.getElementById('unlock-dialog').close();
-    fetch('manifest.json', { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
+    loadManifest()
       .then(renderList);
   });
 })();
