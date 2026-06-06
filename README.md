@@ -92,10 +92,16 @@ The new [`blog/editor.html`](blog/editor.html) interface supports **password-bas
 
 2. **Locally:** Update `.env.local` with the output values and restart the dev server.
 
-3. **Production (Vercel):** Add environment variables in your Vercel project settings:
+3. **Production (Vercel or another server):** Add environment variables in your deployment settings:
    - `BLOG_PASSWORD_HASH` (base64-encoded)
    - `BLOG_PASSWORD_SALT` (base64-encoded)
    - `JWT_SECRET` (random string for session tokens)
+   - `REPO_OWNER` (GitHub username or org)
+   - `REPO_NAME` (repository name)
+   - `TARGET_BRANCH` (`academic`)
+   - `GITHUB_TOKEN` (personal access token with repo write permissions)
+
+> Password auth now publishes to the repo using `GITHUB_TOKEN` so posts are actually saved and then served by GitHub Pages.
 
 #### Features
 

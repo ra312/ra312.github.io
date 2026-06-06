@@ -90,16 +90,21 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'Not authenticated.' });
   }
 
-  // For password-based auth, skip GitHub operations and write directly
+  // For password-based auth, we still need GitHub repo access to save posts
   const isPasswordAuth = bearerMatch !== null;
-
-  // GitHub credentials only needed for GitHub OAuth flow
   const owner = process.env.REPO_OWNER;
   const repo = process.env.REPO_NAME;
   const branch = process.env.TARGET_BRANCH || 'academic';
+  const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
-  if (!isPasswordAuth && (!owner || !repo)) {
-    return res.status(500).json({ error: 'Missing REPO_OWNER or REPO_NAME for GitHub integration' });
+  if (!owner || !repo) {
+    return res.status(500).json({ error: 'Missing REPO_OWNER or REPO_NAME for publishing' });
+  }
+
+  if (isPasswordAuth && !githubToken) {
+    return res.status(500).json({
+      error: 'Password auth publishing requires GITHUB_TOKEN (or GH_TOKEN) in the server environment.',
+    });
   }
 
   let body;
@@ -136,12 +141,13 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // GitHub OAuth flow (original behavior)
-  if (!session.access_token) {
+  // Use GitHub token for password-based publishing, OAuth access token for GitHub flow
+  const authToken = isPasswordAuth ? githubToken : session.access_token;
+  if (!authToken) {
     return res.status(401).json({ error: 'Not authenticated with GitHub.' });
   }
 
-  const octokit = new Octokit({ auth: session.access_token });
+  const octokit = new Octokit({ auth: authToken });
 
   const manifestPath = 'blog/manifest.json';
   const manifestFile = await getFile(octokit, owner, repo, manifestPath, branch);
