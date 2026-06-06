@@ -22,8 +22,8 @@ function cors(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cookie, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, DELETE, OPTIONS');
 }
 
 function validSlug(slug) {
@@ -47,30 +47,131 @@ async function getFile(octokit, owner, repo, path, branch) {
   }
 }
 
+async function deleteGitFile(octokit, owner, repo, path, branch, message) {
+  const file = await getFile(octokit, owner, repo, path, branch);
+  if (!file) return false;
+  await octokit.rest.repos.deleteFile({
+    owner,
+    repo,
+    path,
+    message,
+    sha: file.sha,
+    branch,
+  });
+  return true;
+}
+
+function parseJson(req) {
+  try {
+    return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch (e) {
+    return null;
+  }
+}
+
 module.exports = async function handler(req, res) {
   cors(req, res);
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
 
   const jwtSecret = process.env.JWT_SECRET;
-
   if (!jwtSecret) {
     return res.status(500).json({ error: 'Missing JWT_SECRET' });
   }
 
   const sessionToken = getCookie(req, 'blog_session');
   let session;
-
-  // Check for Bearer token first (password-based auth)
   const authHeader = req.headers.authorization || '';
   const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/);
-  
+
+  if (req.method === 'DELETE') {
+    if (bearerMatch) {
+      try {
+        session = jwt.verify(bearerMatch[1], jwtSecret);
+        if (!session.auth || session.auth !== 'password') {
+          return res.status(401).json({ error: 'Invalid token' });
+        }
+      } catch (e) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+      }
+    } else if (sessionToken) {
+      try {
+        session = jwt.verify(sessionToken, jwtSecret);
+      } catch (e) {
+        return res.status(401).json({ error: 'Session expired. Sign in again.' });
+      }
+    } else {
+      return res.status(401).json({ error: 'Not authenticated.' });
+    }
+
+    const owner = process.env.REPO_OWNER;
+    const repo = process.env.REPO_NAME;
+    const branch = process.env.TARGET_BRANCH || 'academic';
+    const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    const authToken = bearerMatch ? githubToken : session.access_token;
+
+    if (!owner || !repo) {
+      return res.status(500).json({ error: 'Missing REPO_OWNER or REPO_NAME for publishing' });
+    }
+    if (!authToken) {
+      return res.status(500).json({ error: 'Missing GitHub auth token.' });
+    }
+
+    const body = parseJson(req);
+    if (!body || typeof body !== 'object') {
+      return res.status(400).json({ error: 'Invalid JSON body' });
+    }
+    const slug = body.slug;
+    if (!validSlug(slug)) {
+      return res.status(400).json({
+        error: 'Invalid slug. Use lowercase letters, numbers, and hyphens only.',
+      });
+    }
+
+    const octokit = new Octokit({ auth: authToken });
+    const manifestPath = 'blog/manifest.json';
+    const manifestFile = await getFile(octokit, owner, repo, manifestPath, branch);
+    let manifest = { version: 1, posts: [] };
+    let manifestSha = null;
+    if (manifestFile) {
+      try {
+        manifest = JSON.parse(manifestFile.content);
+      } catch (e) {
+        return res.status(500).json({ error: 'Could not parse blog/manifest.json in repo' });
+      }
+      manifestSha = manifestFile.sha;
+    }
+    if (!Array.isArray(manifest.posts)) manifest.posts = [];
+
+    const existing = manifest.posts.filter(function (p) { return p.slug === slug; });
+    if (existing.length === 0) {
+      return res.status(404).json({ error: 'Post not found in manifest.' });
+    }
+
+    await deleteGitFile(octokit, owner, repo, 'blog/posts/' + slug + '.md', branch, 'blog: delete post ' + slug);
+    await deleteGitFile(octokit, owner, repo, 'blog/private/' + slug + '.json', branch, 'blog: delete private post ' + slug);
+
+    manifest.posts = manifest.posts.filter(function (p) { return p.slug !== slug; });
+    const manifestJson = JSON.stringify(manifest, null, 2) + '\n';
+    await octokit.rest.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: manifestPath,
+      message: 'blog: remove post ' + slug,
+      content: Buffer.from(manifestJson, 'utf8').toString('base64'),
+      branch,
+      sha: manifestSha || undefined,
+    });
+
+    return res.status(200).json({ ok: true, slug: slug, deleted: true });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   if (bearerMatch) {
-    // Password-based authentication
     try {
       session = jwt.verify(bearerMatch[1], jwtSecret);
       if (!session.auth || session.auth !== 'password') {
@@ -80,7 +181,6 @@ module.exports = async function handler(req, res) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
   } else if (sessionToken) {
-    // GitHub OAuth authentication (original flow)
     try {
       session = jwt.verify(sessionToken, jwtSecret);
     } catch (e) {
@@ -109,7 +209,7 @@ module.exports = async function handler(req, res) {
 
   let body;
   try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    body = parseJson(req);
   } catch (e) {
     return res.status(400).json({ error: 'Invalid JSON body' });
   }
@@ -131,17 +231,6 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Title is required.' });
   }
 
-  // For password-based auth, store locally in filesystem or return success without GitHub
-  if (isPasswordAuth) {
-    return res.status(200).json({
-      ok: true,
-      slug: slug,
-      visibility: visibility,
-      note: 'Password-based auth: Please configure GitHub integration for actual storage',
-    });
-  }
-
-  // Use GitHub token for password-based publishing, OAuth access token for GitHub flow
   const authToken = isPasswordAuth ? githubToken : session.access_token;
   if (!authToken) {
     return res.status(401).json({ error: 'Not authenticated with GitHub.' });

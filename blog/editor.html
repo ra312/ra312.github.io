@@ -214,7 +214,10 @@
         <button type="button" id="btn-add-ref" class="secondary">+ Add Reference</button>
       </div>
 
-      <button type="submit" class="primary">Publish Post</button>
+      <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:center; margin-top:1rem;">
+        <button type="submit" class="primary">Publish Post</button>
+        <button type="button" id="btn-delete" class="secondary" style="background:#fff; border-color:#e5e7eb; color:var(--ink);">Delete Post</button>
+      </div>
     </form>
 
     <p class="status" id="pub-status"></p>
@@ -450,6 +453,51 @@
   function validSlug(slug) {
     return typeof slug === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(slug) && slug.length <= 120;
   }
+
+  document.getElementById('btn-delete').addEventListener('click', async function (e) {
+    e.preventDefault();
+    const statusEl = document.getElementById('pub-status');
+    statusEl.textContent = '';
+    statusEl.className = 'status';
+
+    if (!apiBase) {
+      statusEl.textContent = 'Configure BLOG_API_BASE first.';
+      statusEl.classList.add('err');
+      return;
+    }
+
+    const slug = document.getElementById('slug').value.trim();
+    if (!validSlug(slug)) {
+      statusEl.textContent = 'Enter a valid slug before deleting.';
+      statusEl.classList.add('err');
+      return;
+    }
+
+    if (!confirm('Delete post "' + slug + '"? This will remove it from the manifest and delete any public/private content.')) {
+      return;
+    }
+
+    try {
+      const session = sessionStorage.getItem(SESSION_KEY);
+      const res = await fetch(apiBase + '/api/publish', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session}`,
+        },
+        body: JSON.stringify({ slug }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || res.statusText || 'Delete failed');
+      }
+      statusEl.textContent = 'Deleted. Refresh the blog listing after GitHub Pages updates.';
+      statusEl.classList.add('ok');
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + (err.message || 'Unknown error');
+      statusEl.classList.add('err');
+    }
+  });
 
   document.getElementById('form-publish').addEventListener('submit', async function (e) {
     e.preventDefault();

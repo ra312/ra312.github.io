@@ -109,6 +109,7 @@ The new [`blog/editor.html`](blog/editor.html) interface supports **password-bas
 - **References:** Built-in citation management
 - **Public/Private:** Choose visibility; private posts encrypt client-side before upload
 - **Session-based:** Password is only stored in the browser session, cleared on logout
+- **Delete support:** Test posts can be deleted from the editor using the delete button
 
 #### Using the editor
 
