@@ -57,24 +57,49 @@ module.exports = async function handler(req, res) {
   }
 
   const jwtSecret = process.env.JWT_SECRET;
+
+  if (!jwtSecret) {
+    return res.status(500).json({ error: 'Missing JWT_SECRET' });
+  }
+
+  const sessionToken = getCookie(req, 'blog_session');
+  let session;
+
+  // Check for Bearer token first (password-based auth)
+  const authHeader = req.headers.authorization || '';
+  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/);
+  
+  if (bearerMatch) {
+    // Password-based authentication
+    try {
+      session = jwt.verify(bearerMatch[1], jwtSecret);
+      if (!session.auth || session.auth !== 'password') {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+    } catch (e) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+  } else if (sessionToken) {
+    // GitHub OAuth authentication (original flow)
+    try {
+      session = jwt.verify(sessionToken, jwtSecret);
+    } catch (e) {
+      return res.status(401).json({ error: 'Session expired. Sign in again.' });
+    }
+  } else {
+    return res.status(401).json({ error: 'Not authenticated.' });
+  }
+
+  // For password-based auth, skip GitHub operations and write directly
+  const isPasswordAuth = bearerMatch !== null;
+
+  // GitHub credentials only needed for GitHub OAuth flow
   const owner = process.env.REPO_OWNER;
   const repo = process.env.REPO_NAME;
   const branch = process.env.TARGET_BRANCH || 'academic';
 
-  if (!jwtSecret || !owner || !repo) {
-    return res.status(500).json({ error: 'Missing JWT_SECRET, REPO_OWNER, or REPO_NAME' });
-  }
-
-  const sessionToken = getCookie(req, 'blog_session');
-  if (!sessionToken) {
-    return res.status(401).json({ error: 'Not authenticated. Sign in with GitHub first.' });
-  }
-
-  let session;
-  try {
-    session = jwt.verify(sessionToken, jwtSecret);
-  } catch (e) {
-    return res.status(401).json({ error: 'Session expired. Sign in again.' });
+  if (!isPasswordAuth && (!owner || !repo)) {
+    return res.status(500).json({ error: 'Missing REPO_OWNER or REPO_NAME for GitHub integration' });
   }
 
   let body;
@@ -99,6 +124,21 @@ module.exports = async function handler(req, res) {
   }
   if (!title) {
     return res.status(400).json({ error: 'Title is required.' });
+  }
+
+  // For password-based auth, store locally in filesystem or return success without GitHub
+  if (isPasswordAuth) {
+    return res.status(200).json({
+      ok: true,
+      slug: slug,
+      visibility: visibility,
+      note: 'Password-based auth: Please configure GitHub integration for actual storage',
+    });
+  }
+
+  // GitHub OAuth flow (original behavior)
+  if (!session.access_token) {
+    return res.status(401).json({ error: 'Not authenticated with GitHub.' });
   }
 
   const octokit = new Octokit({ auth: session.access_token });

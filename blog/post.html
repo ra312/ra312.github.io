@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" />
   <script src="crypto.js"></script>
 
   <style>
@@ -146,6 +148,13 @@
       color: var(--ink);
     }
     button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .katex { font-size: 1.1em; }
+    .katex-display { margin: 1.25rem 0; }
+    article blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1rem 0; color: var(--muted); font-style: italic; }
+    .footnote-ref, .footnotes { font-size: .9rem; }
+    .footnotes { border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 2rem; }
+    .footnotes li { margin-bottom: .5rem; }
+    .katex-error { color: #b91c1c; font-size: .85rem; }
   </style>
 </head>
 <body>
@@ -191,9 +200,43 @@
     return { slug: q.get('slug') || '' };
   }
 
-  function showError(msg) {
-    var el = document.getElementById('error');
-    el.textContent = msg;
+  fu
+    // First parse markdown
+    var html = typeof marked !== 'undefined' && marked.parse
+      ? marked.parse(md)
+      : '<pre>' + md.replace(/</g, '&lt;') + '</pre>';
+    
+    // Then process LaTeX math
+    // Handle display math ($$...$$)
+    html = html.replace(/\$\$([^\$]+)\$\$/g, function (match, formula) {
+      try {
+        return '<div class="katex-display">' + katex.renderToString(formula, { displayMode: true }) + '</div>';
+      } catch (e) {
+        return '<div class="katex-error">LaTeX Error: ' + escapeHtml(e.message) + '</div>';
+      }
+    });
+
+    // Handle inline math ($...$) but avoid double processing
+    html = html.replace(/(?<!\$)\$(?!\$)([^\$]+)\$(?!\$)/g, function (match, formula) {
+      try {
+        return katex.renderToString(formula, { displayMode: false });
+      } catch (e) {
+        return '<span class="katex-error">LaTeX Error</span>';
+      }
+    });
+
+    article.innerHTML = html;
+  }
+
+  function escapeHtml(text) {
+    var map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    };
+    return text.replace(/[&<>"']/g, function (m) { return map[m]; })
   }
 
   function renderMarkdown(md) {

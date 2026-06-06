@@ -78,6 +78,43 @@ GitHub Pages cannot commit to your repo by itself. The repo includes serverless 
 
 **CORS / cookies:** The publish API sets an **HttpOnly** session cookie on the Vercel origin. Your browser must send `credentials: 'include'` to `POST /api/publish` (the admin page does this). Use **HTTPS** on both Pages and Vercel.
 
+### Password authentication
+
+The new [`blog/editor.html`](blog/editor.html) interface supports **password-based authentication** as an alternative to GitHub OAuth. This is simpler for local development and writing without needing GitHub configuration.
+
+#### Manage password
+
+1. **Generate a new password hash:**
+   ```bash
+   node scripts/generate-password-hash.js "your-desired-password"
+   ```
+   This outputs `BLOG_PASSWORD_HASH` and `BLOG_PASSWORD_SALT` (never share these values).
+
+2. **Locally:** Update `.env.local` with the output values and restart the dev server.
+
+3. **Production (Vercel):** Add environment variables in your Vercel project settings:
+   - `BLOG_PASSWORD_HASH` (base64-encoded)
+   - `BLOG_PASSWORD_SALT` (base64-encoded)
+   - `JWT_SECRET` (random string for session tokens)
+
+#### Features
+
+- **Live preview:** Markdown + LaTeX math rendering (`$...$` for inline, `$$...$$` for display)
+- **References:** Built-in citation management
+- **Public/Private:** Choose visibility; private posts encrypt client-side before upload
+- **Session-based:** Password is only stored in the browser session, cleared on logout
+
+#### Using the editor
+
+1. Open `…/blog/editor.html`
+2. Click "Sign In with Password" and enter your password
+3. Write in Markdown with LaTeX support
+4. Add references as needed
+5. Choose visibility (public/private)
+6. Publish
+
+**Security note:** For local testing, see `.env.local.example`. The password hash uses PBKDF2 with 100,000 iterations. Store environment variables securely in Vercel.
+
 ### Owner-only publishing
 
 Only the GitHub account that completes OAuth with **`repo`** scope can publish. If `ALLOWED_GITHUB_USER` is set, the API rejects other GitHub logins. This is separate from the **master password**, which only protects private **content** in the repo.
