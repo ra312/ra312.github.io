@@ -2,6 +2,13 @@
   "version": 1,
   "posts": [
     {
+      "slug": "tropical-ptq-certificate",
+      "title": "Can Tropical Geometry Certify Quantisation?",
+      "date": "2026-06-19",
+      "visibility": "public",
+      "contentPath": "blog/posts/tropical-ptq-certificate.md"
+    },
+    {
       "slug": "tropical-hopf-hardware",
       "title": "Tropical Hopf Structures for Hardware AI",
       "date": "2026-06-19",
