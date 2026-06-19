@@ -206,26 +206,48 @@
       <div class="form-section">
         <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Content</h2>
 
-        <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
-          <label style="font-size:.85rem;color:var(--muted);margin:0;cursor:pointer;display:flex;align-items:center;gap:.4rem;">
-            <input type="file" id="tex-file-input" accept=".tex" style="display:none;" />
-            <button type="button" id="btn-import-tex" style="margin-top:0;">Import .tex file</button>
-          </label>
-          <span id="tex-status" style="font-size:.82rem;color:var(--muted);"></span>
+        <!-- Mode tabs -->
+        <div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid var(--rule);">
+          <button type="button" id="tab-md" class="tab-btn tab-active" style="margin-top:0;border:none;background:none;border-bottom:2px solid var(--accent);margin-bottom:-2px;border-radius:0;padding:.4rem 1rem;font-weight:600;color:var(--accent);">Markdown</button>
+          <button type="button" id="tab-tex" class="tab-btn" style="margin-top:0;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;padding:.4rem 1rem;color:var(--muted);">LaTeX</button>
+          <span id="tex-status" style="font-size:.82rem;color:var(--muted);align-self:center;margin-left:1rem;"></span>
+          <input type="file" id="tex-file-input" accept=".tex" style="display:none;" />
         </div>
 
-        <div class="editor-container">
-          <div class="editor-panel">
-            <h3>Markdown</h3>
-            <textarea id="body" required placeholder="# Heading&#10;&#10;Write in **Markdown**.&#10;&#10;Use $$math$$ for LaTeX.&#10;&#10;Add references with [^ref]."></textarea>
-            <p style="font-size: .8rem; color: var(--muted); margin-top: .5rem;">Tip: Use $...$ for inline math, $$...$$ for display math</p>
-          </div>
-
-          <div class="editor-panel">
-            <h3>Preview</h3>
-            <div class="preview" id="preview"></div>
+        <!-- Markdown mode -->
+        <div id="mode-md">
+          <div class="editor-container">
+            <div class="editor-panel">
+              <h3>Markdown</h3>
+              <textarea id="body" required placeholder="# Heading&#10;&#10;Write in **Markdown**.&#10;&#10;Use $$math$$ for LaTeX.&#10;&#10;Add references with [^ref]."></textarea>
+              <p style="font-size:.8rem;color:var(--muted);margin-top:.5rem;">Tip: Use $…$ for inline math, $$…$$ for display math</p>
+            </div>
+            <div class="editor-panel">
+              <h3>Preview</h3>
+              <div class="preview" id="preview"></div>
+            </div>
           </div>
         </div>
+
+        <!-- LaTeX mode -->
+        <div id="mode-tex" hidden>
+          <div class="editor-container">
+            <div class="editor-panel">
+              <h3>LaTeX <span style="font-size:.75rem;font-weight:400;color:var(--muted);">(auto-converts on pause)</span></h3>
+              <textarea id="latex-body" placeholder="\section{Introduction}&#10;&#10;Let $x \in \mathbb{R}^d$.&#10;&#10;\begin{equation}&#10;  \nabla \log p_t(x)&#10;\end{equation}" style="min-height:400px;font-family:var(--mono);font-size:.85rem;"></textarea>
+              <div style="display:flex;gap:.75rem;margin-top:.5rem;align-items:center;flex-wrap:wrap;">
+                <button type="button" id="btn-convert-tex" style="margin-top:0;">Convert now</button>
+                <button type="button" id="btn-open-tex-file" style="margin-top:0;">Open .tex file…</button>
+                <span id="convert-status" style="font-size:.82rem;color:var(--muted);"></span>
+              </div>
+            </div>
+            <div class="editor-panel">
+              <h3>Preview</h3>
+              <div class="preview" id="preview-tex"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="form-section">
@@ -573,8 +595,74 @@
     }
   });
 
-  // ============= Import .tex file =============
-  document.getElementById('btn-import-tex').addEventListener('click', function () {
+  // ============= Mode tabs (Markdown / LaTeX) =============
+  let currentMode = 'md';
+
+  function setTab(mode) {
+    currentMode = mode;
+    const tabMd = document.getElementById('tab-md');
+    const tabTex = document.getElementById('tab-tex');
+    document.getElementById('mode-md').hidden = mode !== 'md';
+    document.getElementById('mode-tex').hidden = mode !== 'tex';
+    tabMd.style.borderBottomColor = mode === 'md' ? 'var(--accent)' : 'transparent';
+    tabMd.style.color = mode === 'md' ? 'var(--accent)' : 'var(--muted)';
+    tabMd.style.fontWeight = mode === 'md' ? '600' : '400';
+    tabTex.style.borderBottomColor = mode === 'tex' ? 'var(--accent)' : 'transparent';
+    tabTex.style.color = mode === 'tex' ? 'var(--accent)' : 'var(--muted)';
+    tabTex.style.fontWeight = mode === 'tex' ? '600' : '400';
+  }
+
+  document.getElementById('tab-md').addEventListener('click', function () { setTab('md'); });
+  document.getElementById('tab-tex').addEventListener('click', function () { setTab('tex'); });
+
+  // ============= Live LaTeX conversion =============
+  let texDebounceTimer = null;
+
+  async function convertLatex(latexSrc) {
+    const statusEl = document.getElementById('convert-status');
+    statusEl.textContent = 'Converting…';
+    statusEl.style.color = 'var(--muted)';
+    try {
+      const res = await fetch(apiBase + '/api/convert-tex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: latexSrc }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Conversion failed');
+
+      // Mirror to the Markdown tab so publishing always uses markdown
+      document.getElementById('body').value = data.markdown;
+      document.getElementById('preview-tex').innerHTML = BlogMath.renderMarkdown(data.markdown);
+
+      // Auto-fill title from first H1
+      const m = data.markdown.match(/^#\s+(.+)/m);
+      if (m && !document.getElementById('title').value) {
+        document.getElementById('title').value = m[1].trim();
+        document.getElementById('title').dispatchEvent(new Event('input'));
+      }
+
+      statusEl.textContent = '✓ Converted';
+      statusEl.style.color = '#15803d';
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + err.message;
+      statusEl.style.color = '#b91c1c';
+    }
+  }
+
+  document.getElementById('latex-body').addEventListener('input', function () {
+    clearTimeout(texDebounceTimer);
+    const src = this.value;
+    if (!src.trim()) return;
+    texDebounceTimer = setTimeout(function () { convertLatex(src); }, 900);
+  });
+
+  document.getElementById('btn-convert-tex').addEventListener('click', function () {
+    const src = document.getElementById('latex-body').value;
+    if (src.trim()) convertLatex(src);
+  });
+
+  document.getElementById('btn-open-tex-file').addEventListener('click', function () {
     document.getElementById('tex-file-input').click();
   });
 
@@ -582,31 +670,17 @@
     const file = this.files[0];
     if (!file) return;
     const texStatus = document.getElementById('tex-status');
-    texStatus.textContent = 'Converting…';
+    texStatus.textContent = 'Loading…';
     texStatus.style.color = 'var(--muted)';
 
     try {
       const content = await file.text();
-      const res = await fetch(apiBase + '/api/convert-tex', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Conversion failed');
-
-      document.getElementById('body').value = data.markdown;
-      renderPreview();
-
-      // Auto-fill title from first H1 in the markdown
-      const m = data.markdown.match(/^#\s+(.+)/m);
-      if (m && !document.getElementById('title').value) {
-        document.getElementById('title').value = m[1].trim();
-        document.getElementById('title').dispatchEvent(new Event('input'));
-      }
-
-      texStatus.textContent = '✓ Imported from ' + file.name;
+      // Switch to LaTeX tab and populate textarea, then convert
+      setTab('tex');
+      document.getElementById('latex-body').value = content;
+      texStatus.textContent = '✓ ' + file.name;
       texStatus.style.color = '#15803d';
+      await convertLatex(content);
     } catch (err) {
       texStatus.textContent = 'Error: ' + err.message;
       texStatus.style.color = '#b91c1c';
