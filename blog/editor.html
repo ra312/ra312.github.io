@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" />
+  <script src="math-render.js"></script>
   <script src="crypto.js"></script>
 
   <style>
@@ -124,6 +125,8 @@
     .preview ul, .preview ol { margin: 0 0 1rem 1.25rem; }
     .preview blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1rem 0; color: var(--muted); }
     .katex { font-size: 1.1em; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; }
+    .katex-error { color: #b91c1c; font-size: .85rem; }
     .ref-item { background: #f5f0eb; padding: .5rem .75rem; margin: .25rem 0; border-radius: 2px; font-size: .85rem; border-left: 2px solid var(--accent); }
     .ref-item input { width: 100%; padding: .25rem .5rem; font-size: .85rem; margin-bottom: .25rem; }
     .ref-item button { padding: .35rem .75rem; font-size: .8rem; margin-top: .35rem; }
@@ -166,6 +169,17 @@
   <p class="status" id="auth-status"></p>
 
   <div id="editor-section" hidden>
+
+    <!-- Load existing post -->
+    <div class="form-section" style="border-top:none;padding-top:0;margin-top:0;margin-bottom:1.5rem;display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:180px;">
+        <label for="load-slug" style="font-size:.82rem;color:var(--muted);font-weight:600;margin-bottom:.35rem;display:block;">Load existing post to edit</label>
+        <input type="text" id="load-slug" placeholder="post-slug" autocomplete="off" style="width:100%;padding:.5rem .65rem;font-size:.95rem;border:1px solid var(--rule);border-radius:2px;" />
+      </div>
+      <button type="button" id="btn-load-post" style="margin-top:0;flex-shrink:0;">Load Post</button>
+      <p id="load-status" style="width:100%;font-size:.85rem;color:#b91c1c;margin:0;"></p>
+    </div>
+
     <form id="form-publish">
       <div class="form-section">
         <label for="title">Title</label>
@@ -191,7 +205,15 @@
 
       <div class="form-section">
         <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Content</h2>
-        
+
+        <div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+          <label style="font-size:.85rem;color:var(--muted);margin:0;cursor:pointer;display:flex;align-items:center;gap:.4rem;">
+            <input type="file" id="tex-file-input" accept=".tex" style="display:none;" />
+            <button type="button" id="btn-import-tex" style="margin-top:0;">Import .tex file</button>
+          </label>
+          <span id="tex-status" style="font-size:.82rem;color:var(--muted);"></span>
+        </div>
+
         <div class="editor-container">
           <div class="editor-panel">
             <h3>Markdown</h3>
@@ -403,43 +425,9 @@
   const bodyInput = document.getElementById('body');
   const preview = document.getElementById('preview');
 
-  function escapeHtml(text) {
-    const map = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-  }
-
   function renderPreview() {
     const md = bodyInput.value;
-    const html = marked.parse(md);
-    
-    // Replace math delimiters before rendering to HTML
-    let processed = html;
-    
-    // Handle display math ($$...$$)
-    processed = processed.replace(/\$\$([^\$]+)\$\$/g, function (match, formula) {
-      try {
-        return '<div class="katex-display">' + katex.renderToString(formula, { displayMode: true }) + '</div>';
-      } catch (e) {
-        return '<div class="katex-error">LaTeX Error: ' + escapeHtml(e.message) + '</div>';
-      }
-    });
-
-    // Handle inline math ($...$) but avoid double processing
-    processed = processed.replace(/(?<!\$)\$(?!\$)([^\$]+)\$(?!\$)/g, function (match, formula) {
-      try {
-        return katex.renderToString(formula, { displayMode: false });
-      } catch (e) {
-        return '<span class="katex-error">LaTeX Error</span>';
-      }
-    });
-
-    preview.innerHTML = processed;
+    preview.innerHTML = BlogMath.renderMarkdown(md);
   }
 
   bodyInput.addEventListener('input', function () {
@@ -584,6 +572,93 @@
       statusEl.classList.add('err');
     }
   });
+
+  // ============= Import .tex file =============
+  document.getElementById('btn-import-tex').addEventListener('click', function () {
+    document.getElementById('tex-file-input').click();
+  });
+
+  document.getElementById('tex-file-input').addEventListener('change', async function () {
+    const file = this.files[0];
+    if (!file) return;
+    const texStatus = document.getElementById('tex-status');
+    texStatus.textContent = 'Converting…';
+    texStatus.style.color = 'var(--muted)';
+
+    try {
+      const content = await file.text();
+      const res = await fetch(apiBase + '/api/convert-tex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Conversion failed');
+
+      document.getElementById('body').value = data.markdown;
+      renderPreview();
+
+      // Auto-fill title from first H1 in the markdown
+      const m = data.markdown.match(/^#\s+(.+)/m);
+      if (m && !document.getElementById('title').value) {
+        document.getElementById('title').value = m[1].trim();
+        document.getElementById('title').dispatchEvent(new Event('input'));
+      }
+
+      texStatus.textContent = '✓ Imported from ' + file.name;
+      texStatus.style.color = '#15803d';
+    } catch (err) {
+      texStatus.textContent = 'Error: ' + err.message;
+      texStatus.style.color = '#b91c1c';
+    }
+    this.value = '';
+  });
+
+  // ============= Load existing post =============
+  document.getElementById('btn-load-post').addEventListener('click', async function () {
+    const slug = document.getElementById('load-slug').value.trim();
+    const loadStatus = document.getElementById('load-status');
+    if (!slug) { loadStatus.textContent = 'Enter a slug to load.'; return; }
+    loadStatus.textContent = 'Loading…';
+    loadStatus.style.color = 'var(--muted)';
+
+    try {
+      const res = await fetch(apiBase + '/api/post/' + encodeURIComponent(slug));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Load failed');
+
+      document.getElementById('title').value = data.title || '';
+      document.getElementById('slug').value = data.slug || '';
+      document.getElementById('slug').dataset.touched = '1';
+      document.getElementById('date').value = data.date || today;
+      document.getElementById('body').value = data.body || '';
+      const vis = data.visibility === 'private' ? 'private' : 'public';
+      document.querySelector('input[name="visibility"][value="' + vis + '"]').checked = true;
+      updatePrivateFields();
+      renderPreview();
+
+      loadStatus.textContent = '✓ Loaded "' + (data.title || slug) + '"';
+      loadStatus.style.color = '#15803d';
+    } catch (err) {
+      loadStatus.textContent = 'Error: ' + err.message;
+      loadStatus.style.color = '#b91c1c';
+    }
+  });
+
+  // Also support ?edit=slug in the URL
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const editSlug = params.get('edit');
+    if (editSlug) {
+      document.getElementById('load-slug').value = editSlug;
+      // Load after auth check
+      const orig = showAuthUI;
+      showAuthUI = function () {
+        orig();
+        if (isAuthenticated()) document.getElementById('btn-load-post').click();
+      };
+    }
+  })();
 
   // Initialize
   showAuthUI();

@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" />
+  <script src="math-render.js"></script>
   <script src="crypto.js"></script>
 
   <style>
@@ -149,12 +150,33 @@
     }
     button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
     .katex { font-size: 1.1em; }
-    .katex-display { margin: 1.25rem 0; }
+    .katex-display { margin: 1.25rem 0; overflow-x: auto; overflow-y: hidden; }
     article blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1rem 0; color: var(--muted); font-style: italic; }
     .footnote-ref, .footnotes { font-size: .9rem; }
     .footnotes { border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 2rem; }
     .footnotes li { margin-bottom: .5rem; }
     .katex-error { color: #b91c1c; font-size: .85rem; }
+    .theorem {
+      border-left: 3px solid var(--accent);
+      background: rgba(180, 83, 9, .04);
+      padding: .75rem 1rem;
+      margin: 1.5rem 0;
+      border-radius: 0 2px 2px 0;
+    }
+    .theorem::before {
+      display: block;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .4rem;
+    }
+    .theorem.problem::before { content: "Problem"; }
+    .theorem.direction::before { content: "Research Direction"; }
+    .theorem.remark::before { content: "Remark"; }
+    .theorem p:last-child { margin-bottom: 0; }
+    .theorem strong:first-child { color: var(--ink); }
   </style>
 </head>
 <body>
@@ -200,50 +222,9 @@
     return { slug: q.get('slug') || '' };
   }
 
-  fu
-    // First parse markdown
-    var html = typeof marked !== 'undefined' && marked.parse
-      ? marked.parse(md)
-      : '<pre>' + md.replace(/</g, '&lt;') + '</pre>';
-    
-    // Then process LaTeX math
-    // Handle display math ($$...$$)
-    html = html.replace(/\$\$([^\$]+)\$\$/g, function (match, formula) {
-      try {
-        return '<div class="katex-display">' + katex.renderToString(formula, { displayMode: true }) + '</div>';
-      } catch (e) {
-        return '<div class="katex-error">LaTeX Error: ' + escapeHtml(e.message) + '</div>';
-      }
-    });
-
-    // Handle inline math ($...$) but avoid double processing
-    html = html.replace(/(?<!\$)\$(?!\$)([^\$]+)\$(?!\$)/g, function (match, formula) {
-      try {
-        return katex.renderToString(formula, { displayMode: false });
-      } catch (e) {
-        return '<span class="katex-error">LaTeX Error</span>';
-      }
-    });
-
-    article.innerHTML = html;
-  }
-
-  function escapeHtml(text) {
-    var map = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-    };
-    return text.replace(/[&<>"']/g, function (m) { return map[m]; })
-  }
-
   function renderMarkdown(md) {
     var article = document.getElementById('content');
-    article.innerHTML = typeof marked !== 'undefined' && marked.parse
-      ? marked.parse(md)
-      : '<pre>' + md.replace(/</g, '&lt;') + '</pre>';
+    article.innerHTML = BlogMath.renderMarkdown(md);
   }
 
   function showPost(meta, title) {

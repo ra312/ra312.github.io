@@ -2,6 +2,27 @@
   "version": 1,
   "posts": [
     {
+      "slug": "diffusion-model-open-problems",
+      "title": "diffusion-model-open-problems",
+      "date": "2026-06-19",
+      "visibility": "public",
+      "contentPath": "blog/posts/diffusion-model-open-problems.md"
+    },
+    {
+      "slug": "diffsuin",
+      "title": "diffsuin",
+      "date": "2026-06-19",
+      "visibility": "public",
+      "contentPath": "blog/posts/diffsuin.md"
+    },
+    {
+      "slug": "diffusion",
+      "title": "diffusion",
+      "date": "2026-06-19",
+      "visibility": "public",
+      "contentPath": "blog/posts/diffusion.md"
+    },
+    {
       "slug": "sparse-auto-encoder",
       "title": "sparse-auto-encoder",
       "date": "2026-04-19",
