@@ -16,6 +16,13 @@
       "contentPath": "blog/posts/diffsuin.md"
     },
     {
+      "slug": "diffusion",
+      "title": "diffusion",
+      "date": "2026-06-19",
+      "visibility": "public",
+      "contentPath": "blog/posts/diffusion.md"
+    },
+    {
       "slug": "sparse-auto-encoder",
       "title": "sparse-auto-encoder",
       "date": "2026-04-19",
