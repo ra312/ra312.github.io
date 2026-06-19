@@ -47,7 +47,7 @@ fi
 # Clean up bibliography fenced div
 node - "$OUTPUT" <<'NODE'
 const fs = require('fs');
-const path = process.argv[1];
+const path = process.argv[2];
 let md = fs.readFileSync(path, 'utf8');
 md = md.replace(/::: thebibliography\n\d+\n\n/, '## References\n\n');
 md = md.replace(/\n:::\s*$/, '\n');

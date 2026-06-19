@@ -114,22 +114,39 @@
     }
   }
 
-  function expandFencedDivs(md) {
-    // Convert pandoc-style ::: classname ... ::: to <div class="theorem classname">
-    return md.replace(/^:::\s+(\S+)\s*\n([\s\S]*?)^:::\s*$/gm, function (_, cls, body) {
-      return '<div class="theorem ' + escapeHtml(cls) + '">' + body.trim() + '</div>\n';
+  function extractFencedDivs(md) {
+    var parts = [];
+    var out = md.replace(/^:::\s+(\S+)\s*\n([\s\S]*?)^:::\s*$/gm, function (_, cls, body) {
+      var token = 'BLOGTHEOREMPLACEHOLDER' + parts.length + 'X';
+      parts.push({ token: token, cls: cls, body: body.trim() });
+      return token;
     });
+    return { markdown: out, parts: parts };
+  }
+
+  function renderMarkdownParts(md, parts) {
+    var html = typeof marked !== 'undefined' && marked.parse
+      ? marked.parse(md)
+      : '<pre>' + escapeHtml(md) + '</pre>';
+
+    parts.forEach(function (part) {
+      html = html.split(part.token).join(renderMath(part));
+    });
+
+    return html;
   }
 
   function renderMarkdown(md) {
-    var expanded = expandFencedDivs(String(md || ''));
-    var protectedMath = protectMath(expanded);
-    var html = typeof marked !== 'undefined' && marked.parse
-      ? marked.parse(protectedMath.markdown)
-      : '<pre>' + escapeHtml(protectedMath.markdown) + '</pre>';
+    var fenced = extractFencedDivs(String(md || ''));
+    var protectedMath = protectMath(fenced.markdown);
+    var html = renderMarkdownParts(protectedMath.markdown, protectedMath.parts);
 
-    protectedMath.parts.forEach(function (part) {
-      html = html.split(part.token).join(renderMath(part));
+    fenced.parts.forEach(function (part) {
+      var innerProtected = protectMath(part.body);
+      var innerHtml = renderMarkdownParts(innerProtected.markdown, innerProtected.parts);
+      html = html.split(part.token).join(
+        '<div class="theorem ' + escapeHtml(part.cls) + '">' + innerHtml + '</div>'
+      );
     });
 
     return html;

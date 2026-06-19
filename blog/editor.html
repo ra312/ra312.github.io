@@ -459,6 +459,119 @@
   // Initial render
   renderPreview();
 
+  // ============= Mode tabs (Markdown / LaTeX) =============
+  let currentMode = 'md';
+  let texDebounceTimer = null;
+  let texConversionSeq = 0;
+
+  function setTab(mode) {
+    currentMode = mode;
+    const tabMd = document.getElementById('tab-md');
+    const tabTex = document.getElementById('tab-tex');
+    document.getElementById('mode-md').hidden = mode !== 'md';
+    document.getElementById('mode-tex').hidden = mode !== 'tex';
+    tabMd.style.borderBottomColor = mode === 'md' ? 'var(--accent)' : 'transparent';
+    tabMd.style.color = mode === 'md' ? 'var(--accent)' : 'var(--muted)';
+    tabMd.style.fontWeight = mode === 'md' ? '600' : '400';
+    tabTex.style.borderBottomColor = mode === 'tex' ? 'var(--accent)' : 'transparent';
+    tabTex.style.color = mode === 'tex' ? 'var(--accent)' : 'var(--muted)';
+    tabTex.style.fontWeight = mode === 'tex' ? '600' : '400';
+  }
+
+  document.getElementById('tab-md').addEventListener('click', function () { setTab('md'); });
+  document.getElementById('tab-tex').addEventListener('click', function () { setTab('tex'); });
+
+  async function convertLatex(latexSrc) {
+    const seq = ++texConversionSeq;
+    const statusEl = document.getElementById('convert-status');
+    statusEl.textContent = 'Converting…';
+    statusEl.style.color = 'var(--muted)';
+    try {
+      const res = await fetch(apiBase + '/api/convert-tex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: latexSrc }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Conversion failed');
+      if (seq !== texConversionSeq) return null;
+
+      document.getElementById('body').value = data.markdown;
+      document.getElementById('preview-tex').innerHTML = BlogMath.renderMarkdown(data.markdown);
+
+      const m = data.markdown.match(/^#\s+(.+)/m);
+      if (m && !document.getElementById('title').value) {
+        document.getElementById('title').value = m[1].trim();
+        document.getElementById('title').dispatchEvent(new Event('input'));
+      }
+
+      statusEl.textContent = '✓ Converted';
+      statusEl.style.color = '#15803d';
+      return data.markdown;
+    } catch (err) {
+      if (seq === texConversionSeq) {
+        statusEl.textContent = 'Error: ' + err.message;
+        statusEl.style.color = '#b91c1c';
+      }
+      return null;
+    }
+  }
+
+  async function ensureBodySynced() {
+    if (currentMode !== 'tex') {
+      return document.getElementById('body').value;
+    }
+
+    clearTimeout(texDebounceTimer);
+    const latexSrc = document.getElementById('latex-body').value.trim();
+    if (!latexSrc) {
+      return document.getElementById('body').value;
+    }
+
+    const markdown = await convertLatex(latexSrc);
+    if (!markdown) {
+      throw new Error('LaTeX conversion failed. Fix errors or click "Convert now" before publishing.');
+    }
+    return markdown;
+  }
+
+  document.getElementById('latex-body').addEventListener('input', function () {
+    clearTimeout(texDebounceTimer);
+    const src = this.value;
+    if (!src.trim()) return;
+    texDebounceTimer = setTimeout(function () { convertLatex(src); }, 900);
+  });
+
+  document.getElementById('btn-convert-tex').addEventListener('click', function () {
+    const src = document.getElementById('latex-body').value;
+    if (src.trim()) convertLatex(src);
+  });
+
+  document.getElementById('btn-open-tex-file').addEventListener('click', function () {
+    document.getElementById('tex-file-input').click();
+  });
+
+  document.getElementById('tex-file-input').addEventListener('change', async function () {
+    const file = this.files[0];
+    if (!file) return;
+    const texStatus = document.getElementById('tex-status');
+    texStatus.textContent = 'Loading…';
+    texStatus.style.color = 'var(--muted)';
+
+    try {
+      const content = await file.text();
+      setTab('tex');
+      document.getElementById('latex-body').value = content;
+      texStatus.textContent = '✓ ' + file.name;
+      texStatus.style.color = '#15803d';
+      await convertLatex(content);
+    } catch (err) {
+      texStatus.textContent = 'Error: ' + err.message;
+      texStatus.style.color = '#b91c1c';
+    }
+    this.value = '';
+  });
+
   // ============= Publish =============
   function validSlug(slug) {
     return typeof slug === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(slug) && slug.length <= 120;
@@ -525,10 +638,21 @@
     const title = document.getElementById('title').value.trim();
     const slug = document.getElementById('slug').value.trim();
     const date = document.getElementById('date').value;
-    let body = document.getElementById('body').value;
+    let body;
 
     if (!validSlug(slug)) {
       statusEl.textContent = 'Invalid slug.';
+      statusEl.classList.add('err');
+      return;
+    }
+
+    try {
+      if (currentMode === 'tex') {
+        statusEl.textContent = 'Converting LaTeX before publish…';
+      }
+      body = await ensureBodySynced();
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + (err.message || 'Could not sync LaTeX content');
       statusEl.classList.add('err');
       return;
     }
@@ -593,99 +717,6 @@
       statusEl.textContent = 'Error: ' + (err.message || 'Unknown error');
       statusEl.classList.add('err');
     }
-  });
-
-  // ============= Mode tabs (Markdown / LaTeX) =============
-  let currentMode = 'md';
-
-  function setTab(mode) {
-    currentMode = mode;
-    const tabMd = document.getElementById('tab-md');
-    const tabTex = document.getElementById('tab-tex');
-    document.getElementById('mode-md').hidden = mode !== 'md';
-    document.getElementById('mode-tex').hidden = mode !== 'tex';
-    tabMd.style.borderBottomColor = mode === 'md' ? 'var(--accent)' : 'transparent';
-    tabMd.style.color = mode === 'md' ? 'var(--accent)' : 'var(--muted)';
-    tabMd.style.fontWeight = mode === 'md' ? '600' : '400';
-    tabTex.style.borderBottomColor = mode === 'tex' ? 'var(--accent)' : 'transparent';
-    tabTex.style.color = mode === 'tex' ? 'var(--accent)' : 'var(--muted)';
-    tabTex.style.fontWeight = mode === 'tex' ? '600' : '400';
-  }
-
-  document.getElementById('tab-md').addEventListener('click', function () { setTab('md'); });
-  document.getElementById('tab-tex').addEventListener('click', function () { setTab('tex'); });
-
-  // ============= Live LaTeX conversion =============
-  let texDebounceTimer = null;
-
-  async function convertLatex(latexSrc) {
-    const statusEl = document.getElementById('convert-status');
-    statusEl.textContent = 'Converting…';
-    statusEl.style.color = 'var(--muted)';
-    try {
-      const res = await fetch(apiBase + '/api/convert-tex', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: latexSrc }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Conversion failed');
-
-      // Mirror to the Markdown tab so publishing always uses markdown
-      document.getElementById('body').value = data.markdown;
-      document.getElementById('preview-tex').innerHTML = BlogMath.renderMarkdown(data.markdown);
-
-      // Auto-fill title from first H1
-      const m = data.markdown.match(/^#\s+(.+)/m);
-      if (m && !document.getElementById('title').value) {
-        document.getElementById('title').value = m[1].trim();
-        document.getElementById('title').dispatchEvent(new Event('input'));
-      }
-
-      statusEl.textContent = '✓ Converted';
-      statusEl.style.color = '#15803d';
-    } catch (err) {
-      statusEl.textContent = 'Error: ' + err.message;
-      statusEl.style.color = '#b91c1c';
-    }
-  }
-
-  document.getElementById('latex-body').addEventListener('input', function () {
-    clearTimeout(texDebounceTimer);
-    const src = this.value;
-    if (!src.trim()) return;
-    texDebounceTimer = setTimeout(function () { convertLatex(src); }, 900);
-  });
-
-  document.getElementById('btn-convert-tex').addEventListener('click', function () {
-    const src = document.getElementById('latex-body').value;
-    if (src.trim()) convertLatex(src);
-  });
-
-  document.getElementById('btn-open-tex-file').addEventListener('click', function () {
-    document.getElementById('tex-file-input').click();
-  });
-
-  document.getElementById('tex-file-input').addEventListener('change', async function () {
-    const file = this.files[0];
-    if (!file) return;
-    const texStatus = document.getElementById('tex-status');
-    texStatus.textContent = 'Loading…';
-    texStatus.style.color = 'var(--muted)';
-
-    try {
-      const content = await file.text();
-      // Switch to LaTeX tab and populate textarea, then convert
-      setTab('tex');
-      document.getElementById('latex-body').value = content;
-      texStatus.textContent = '✓ ' + file.name;
-      texStatus.style.color = '#15803d';
-      await convertLatex(content);
-    } catch (err) {
-      texStatus.textContent = 'Error: ' + err.message;
-      texStatus.style.color = '#b91c1c';
-    }
-    this.value = '';
   });
 
   // ============= Load existing post =============
