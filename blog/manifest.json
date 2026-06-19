@@ -2,6 +2,13 @@
   "version": 1,
   "posts": [
     {
+      "slug": "tropical-hopf-hardware",
+      "title": "Tropical Hopf Structures for Hardware AI",
+      "date": "2026-06-19",
+      "visibility": "public",
+      "contentPath": "blog/posts/tropical-hopf-hardware.md"
+    },
+    {
       "slug": "diffusion-model-open-problems",
       "title": "Mathematical Unsolved Problems in Diffusion Models",
       "date": "2026-06-19",
