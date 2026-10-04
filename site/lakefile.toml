@@ -10,3 +10,7 @@ name = "Profile"
 [[lean_exe]]
 name = "build_site"
 root = "Main"
+
+[[lean_exe]]
+name = "verify"
+root = "Verify"

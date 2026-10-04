@@ -10,8 +10,10 @@ def main : IO Unit := do
   -- Add DOCTYPE manually
   let fullHtml := s!"<!DOCTYPE html>\n{rendered}"
 
-  -- Create output directory
+  -- Paths relative to the parent directory of site/
+  let siteDir := "/Users/daocode/ra312.github.io/site"
   let distDir := "/Users/daocode/ra312.github.io/dist"
+
   try
     IO.FS.createDirAll distDir
   catch e => do
@@ -28,7 +30,7 @@ def main : IO Unit := do
   try
     let cssDir := s!"{distDir}/assets"
     IO.FS.createDirAll cssDir
-    let cssContent <- IO.FS.readFile "/Users/daocode/ra312.github.io/site/assets/site.css"
+    let cssContent <- IO.FS.readFile s!"{siteDir}/assets/site.css"
     IO.FS.writeFile s!"{cssDir}/site.css" cssContent
     IO.println s!"Copied assets/site.css"
   catch e => do

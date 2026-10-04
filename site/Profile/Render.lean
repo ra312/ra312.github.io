@@ -9,10 +9,21 @@ namespace Profile
 def renderLink (link : Link) : Html :=
   a link.href [] [Html.text link.text]
 
-/-- Group publications by year in descending order -/
+/-- Get unique years from publications in order they appear -/
+def uniqueYearsInOrder (pubs : List Pub) : List Nat :=
+  let rec go (pubs : List Pub) (acc : List Nat) : List Nat :=
+    match pubs with
+    | [] => acc.reverse
+    | p :: rest =>
+      if acc.contains p.year then
+        go rest acc
+      else
+        go rest (p.year :: acc)
+  go pubs []
+
+/-- Group publications by year in order -/
 def groupPubsByYear (pubs : List Pub) : List (Nat × List Pub) :=
-  -- Collect unique years preserving order from the data
-  let years : List Nat := [2025, 2022, 2020, 2019, 2018, 2017, 2016, 2014, 2008]
+  let years := uniqueYearsInOrder pubs
   -- For each year, collect publications
   years.map (fun year => (year, pubs.filter (fun p => p.year == year)))
 
