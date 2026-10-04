@@ -1,0 +1,12 @@
+name = "profile"
+version = "0.1.0"
+authors = ["Rauan Akylzhanov"]
+description = "CV in Lean 4, rendered with LeanInk"
+defaultTargets = ["build_site"]
+
+[[lean_lib]]
+name = "Profile"
+
+[[lean_exe]]
+name = "build_site"
+root = "Main"

@@ -231,21 +231,18 @@
 
         <!-- LaTeX mode -->
         <div id="mode-tex" hidden>
-          <div class="editor-container">
-            <div class="editor-panel">
-              <h3>LaTeX <span style="font-size:.75rem;font-weight:400;color:var(--muted);">(auto-converts on pause)</span></h3>
-              <textarea id="latex-body" placeholder="\section{Introduction}&#10;&#10;Let $x \in \mathbb{R}^d$.&#10;&#10;\begin{equation}&#10;  \nabla \log p_t(x)&#10;\end{equation}" style="min-height:400px;font-family:var(--mono);font-size:.85rem;"></textarea>
-              <div style="display:flex;gap:.75rem;margin-top:.5rem;align-items:center;flex-wrap:wrap;">
-                <button type="button" id="btn-convert-tex" style="margin-top:0;">Convert now</button>
-                <button type="button" id="btn-open-tex-file" style="margin-top:0;">Open .tex file…</button>
-                <span id="convert-status" style="font-size:.82rem;color:var(--muted);"></span>
-              </div>
-            </div>
-            <div class="editor-panel">
-              <h3>Preview</h3>
-              <div class="preview" id="preview-tex"></div>
-            </div>
+          <iframe
+            id="texlyre-frame"
+            src="/texlyre/"
+            style="width:100%; height:600px; border:1px solid var(--rule); border-radius:2px;"
+            allow="cross-origin-isolated"
+            title="LaTeX Editor">
+          </iframe>
+          <div style="display:flex;gap:.75rem;margin-top:.5rem;align-items:center;flex-wrap:wrap;">
+            <button type="button" id="btn-open-tex-file" style="margin-top:0;">Open .tex file…</button>
+            <span id="convert-status" style="font-size:.82rem;color:var(--muted);"></span>
           </div>
+          <p style="font-size:.8rem;color:var(--muted);margin-top:.5rem;">Use <strong>Publish to Blog</strong> inside TeXlyre to sync LaTeX and update the Markdown preview.</p>
         </div>
 
       </div>
@@ -461,8 +458,36 @@
 
   // ============= Mode tabs (Markdown / LaTeX) =============
   let currentMode = 'md';
-  let texDebounceTimer = null;
   let texConversionSeq = 0;
+  let currentLatexSource = '';
+
+  const TEXLYRE_ORIGINS = [
+    'https://ra312.github.io',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ];
+
+  const texlyreFrame = document.getElementById('texlyre-frame');
+  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    texlyreFrame.src = 'http://localhost:5173/';
+  }
+
+  function postToTexlyre(message) {
+    if (!texlyreFrame.contentWindow) return;
+    for (const origin of TEXLYRE_ORIGINS) {
+      texlyreFrame.contentWindow.postMessage(message, origin);
+    }
+  }
+
+  function sendLatexToTexlyre(source, filename) {
+    if (!source || !source.trim()) return;
+    currentLatexSource = source;
+    postToTexlyre({
+      type: 'texlyre-load-latex',
+      source: source,
+      filename: filename || 'main.tex',
+    });
+  }
 
   function setTab(mode) {
     currentMode = mode;
@@ -497,7 +522,12 @@
       if (seq !== texConversionSeq) return null;
 
       document.getElementById('body').value = data.markdown;
-      document.getElementById('preview-tex').innerHTML = BlogMath.renderMarkdown(data.markdown);
+      if (currentMode === 'tex') {
+        const previewTex = document.getElementById('preview-tex');
+        if (previewTex) previewTex.innerHTML = BlogMath.renderMarkdown(data.markdown);
+      } else {
+        renderPreview();
+      }
 
       const m = data.markdown.match(/^#\s+(.+)/m);
       if (m && !document.getElementById('title').value) {
@@ -522,29 +552,24 @@
       return document.getElementById('body').value;
     }
 
-    clearTimeout(texDebounceTimer);
-    const latexSrc = document.getElementById('latex-body').value.trim();
-    if (!latexSrc) {
-      return document.getElementById('body').value;
+    const body = document.getElementById('body').value.trim();
+    if (!body) {
+      throw new Error('Click "Publish to Blog" inside the LaTeX editor first.');
     }
-
-    const markdown = await convertLatex(latexSrc);
-    if (!markdown) {
-      throw new Error('LaTeX conversion failed. Fix errors or click "Convert now" before publishing.');
-    }
-    return markdown;
+    return document.getElementById('body').value;
   }
 
-  document.getElementById('latex-body').addEventListener('input', function () {
-    clearTimeout(texDebounceTimer);
-    const src = this.value;
-    if (!src.trim()) return;
-    texDebounceTimer = setTimeout(function () { convertLatex(src); }, 900);
-  });
+  window.addEventListener('message', function (e) {
+    const allowedOrigins = TEXLYRE_ORIGINS.concat(['http://localhost:8080', 'http://127.0.0.1:8080']);
+    if (!allowedOrigins.includes(e.origin)) return;
+    if (!e.data || e.data.type !== 'texlyre-publish') return;
 
-  document.getElementById('btn-convert-tex').addEventListener('click', function () {
-    const src = document.getElementById('latex-body').value;
-    if (src.trim()) convertLatex(src);
+    const latexSrc = typeof e.data.source === 'string' ? e.data.source : '';
+    if (!latexSrc.trim()) return;
+
+    currentLatexSource = latexSrc;
+    document.getElementById('convert-status').textContent = 'Converting from TeXlyre…';
+    convertLatex(latexSrc);
   });
 
   document.getElementById('btn-open-tex-file').addEventListener('click', function () {
@@ -561,9 +586,10 @@
     try {
       const content = await file.text();
       setTab('tex');
-      document.getElementById('latex-body').value = content;
+      sendLatexToTexlyre(content, file.name);
       texStatus.textContent = '✓ ' + file.name;
       texStatus.style.color = '#15803d';
+      document.getElementById('convert-status').textContent = 'Loaded .tex — click "Publish to Blog" in TeXlyre to convert.';
       await convertLatex(content);
     } catch (err) {
       texStatus.textContent = 'Error: ' + err.message;
@@ -690,6 +716,9 @@
       }
     } else {
       payload.body = body;
+      if (currentLatexSource && currentLatexSource.trim()) {
+        payload.latex_source = currentLatexSource;
+      }
     }
 
     try {
@@ -737,6 +766,11 @@
       document.getElementById('slug').dataset.touched = '1';
       document.getElementById('date').value = data.date || today;
       document.getElementById('body').value = data.body || '';
+      if (data.latex_source) {
+        currentLatexSource = data.latex_source;
+        setTab('tex');
+        sendLatexToTexlyre(data.latex_source, (data.slug || slug) + '.tex');
+      }
       const vis = data.visibility === 'private' ? 'private' : 'public';
       document.querySelector('input[name="visibility"][value="' + vis + '"]').checked = true;
       updatePrivateFields();

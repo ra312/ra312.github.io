@@ -287,6 +287,19 @@ module.exports = async function handler(req, res) {
       branch,
       sha: existingPub ? existingPub.sha : undefined,
     });
+    if (typeof body.latex_source === 'string' && body.latex_source.trim()) {
+      const texPath = 'blog/latex/' + slug + '.tex';
+      const existingTex = await getFile(octokit, owner, repo, texPath, branch);
+      await octokit.rest.repos.createOrUpdateFileContents({
+        owner,
+        repo,
+        path: texPath,
+        message: 'blog: save latex source for ' + slug,
+        content: Buffer.from(body.latex_source, 'utf8').toString('base64'),
+        branch,
+        sha: existingTex ? existingTex.sha : undefined,
+      });
+    }
     try {
       const priv = await getFile(octokit, owner, repo, 'blog/private/' + slug + '.json', branch);
       if (priv && priv.sha) {
