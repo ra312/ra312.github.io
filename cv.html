@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Academic &amp; industry background — Rauan Akylzhanov</title>
+<meta name="description" content="Research experience, education, teaching, and awards of Rauan Akylzhanov.">
+<link rel="canonical" href="https://ra312.github.io/cv.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:     #1c1917;
+      --muted:   #57534e;
+      --rule:    #e7e5e4;
+      --nav-bg:  #f5f0eb;
+      --paper:   #fafaf9;
+      --accent:  #b45309;
+      --link:    #44403c;
+      --max:     720px;
+      --gap:     2.25rem;
+      --sans:    "Source Sans 3", "Source Sans Pro", -apple-system, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; font-size: 17px; }
+
+    body {
+      font-family: var(--sans);
+      font-weight: 300;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+      padding: 0 1.25rem;
+      padding-top: 3.25rem;
+    }
+
+    a {
+      color: var(--link);
+      text-decoration: none;
+      transition: color .15s ease;
+    }
+    a:hover { color: var(--accent); }
+
+    .page {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 2rem 0 4rem;
+    }
+
+    /* Fixed nav (bamos-like, no blur) */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--rule);
+      z-index: 100;
+      padding: .65rem 1.25rem;
+    }
+
+    nav ul {
+      max-width: var(--max);
+      margin: 0 auto;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1.25rem;
+    }
+
+    nav a {
+      font-size: .88rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+    nav a:hover { color: var(--accent); }
+
+    header {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 1.75rem;
+      margin-bottom: var(--gap);
+    }
+
+    .name {
+      font-size: clamp(1.85rem, 5vw, 2.35rem);
+      font-weight: 400;
+      letter-spacing: -.02em;
+      line-height: 1.2;
+    }
+
+    .name em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--accent);
+    }
+
+    .tagline {
+      font-size: .95rem;
+      color: var(--muted);
+      margin-top: .5rem;
+      font-weight: 300;
+    }
+
+    .contact {
+      margin-top: 1rem;
+      font-size: .92rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1.1rem;
+    }
+
+    .contact a { border-bottom: 1px solid var(--rule); }
+    .contact a:hover { border-color: var(--accent); }
+
+    section { margin-bottom: var(--gap); scroll-margin-top: 3.75rem; }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 400;
+      color: var(--ink);
+      margin-bottom: 1rem;
+      padding-top: .25rem;
+    }
+
+    .section-title .chev {
+      color: var(--accent);
+      font-size: .75em;
+      margin-right: .35rem;
+      vertical-align: .05em;
+    }
+
+    .lead {
+      text-align: justify;
+      font-size: .98rem;
+      margin-bottom: 1rem;
+      color: var(--ink);
+    }
+
+    .note-link {
+      font-size: .9rem;
+      color: var(--muted);
+      margin-top: .25rem;
+    }
+
+    .note-link a {
+      color: var(--muted);
+      border-bottom: 1px dotted var(--rule);
+    }
+    .note-link a:hover { color: var(--accent); border-color: var(--accent); }
+
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding: .65rem 0 .65rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: .95rem;
+      color: var(--muted);
+      background: rgba(180, 83, 9, .04);
+    }
+
+    .pull-quote .label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .45rem;
+    }
+
+    .pub-blurb {
+      font-size: .92rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+      line-height: 1.55;
+    }
+
+    .pub-blurb strong { font-weight: 600; color: var(--ink); }
+
+    .year-heading {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 1.5rem 0 .65rem;
+      color: var(--ink);
+    }
+
+    .year-heading:first-of-type { margin-top: 0; }
+
+    .pub-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: .25rem;
+      font-size: .95rem;
+      font-weight: 300;
+    }
+
+    .pub-table td {
+      vertical-align: top;
+      padding: .5rem 0 .85rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .pub-table tr:last-child td { border-bottom: none; }
+
+    .pub-num {
+      width: 1.75rem;
+      padding-right: .5rem;
+      text-align: right;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .pub-cell em, .pub-title-em {
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .pub-authors {
+      font-size: .88rem;
+      color: var(--muted);
+      margin-top: .2rem;
+    }
+
+    .pub-venue {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: .15rem;
+    }
+
+    .entry {
+      display: grid;
+      grid-template-columns: 6.5rem 1fr;
+      gap: 0 1.25rem;
+      margin-bottom: 1.35rem;
+    }
+
+    .entry-year {
+      font-size: .82rem;
+      color: var(--muted);
+      padding-top: .12rem;
+      font-weight: 400;
+    }
+
+    .entry-title {
+      font-weight: 600;
+      font-size: .98rem;
+      line-height: 1.35;
+    }
+
+    .entry-sub {
+      font-size: .9rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: .1rem;
+    }
+
+    .entry-desc {
+      font-size: .9rem;
+      margin-top: .35rem;
+      color: var(--ink);
+      line-height: 1.55;
+      text-align: justify;
+    }
+
+    .subheading {
+      font-size: .82rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.5rem 0 .6rem;
+    }
+
+    .collab-list {
+      font-size: .9rem;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 100%;
+    }
+
+    footer {
+      border-top: 1px solid var(--rule);
+      padding-top: 1.25rem;
+      font-size: .8rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    @media (max-width: 540px) {
+      .entry { grid-template-columns: 1fr; }
+      .entry-year { margin-bottom: .15rem; }
+      .pub-num { width: 1.35rem; }
+    }
+
+.lead, .entry-desc { text-align: left; }
+.intro { font-size: 1.08rem; }
+.research-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+.research-card { border-top: 2px solid var(--accent); padding-top: .8rem; }
+.research-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: .5rem; }
+.research-card p { margin-bottom: .7rem; }
+.text-link { text-decoration: underline; text-underline-offset: .2em; }
+.programme h3 { margin: 1.3rem 0 .5rem; font-size: 1.08rem; font-weight: 600; }
+.programme ul { padding-left: 1.2rem; margin: .6rem 0 1rem; }
+.programme li { margin-bottom: .55rem; }
+details { border-top: 1px solid var(--rule); padding-top: 1rem; }
+summary { cursor: pointer; font-weight: 600; margin-bottom: 1rem; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+nav a[aria-current="page"] { color: var(--accent); }
+@media (max-width: 540px) { .research-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style></head><body>
+<nav aria-label="Main navigation"><ul><li><a href="index.html">About</a></li><li><a href="research.html">Research</a></li><li><a href="publications.html">Publications</a></li><li><a href="blog/index.html">Writing</a></li><li><a href="cv.html" aria-current="page">CV</a></li></ul></nav><main class="page">
+<header><h1 class="name">Academic &amp; industry background</h1><p class="tagline">Rauan Akylzhanov</p>
+<div class="contact"><a href="mailto:akylzhanov.r@gmail.com">Email</a><a href="https://scholar.google.com/citations?user=BAxsRYkAAAAJ&amp;hl=en">Google Scholar</a><a href="https://github.com/ra312">GitHub</a></div></header>
+<section id="experience">
+<p class="lead">I currently work on AI strategy and modelling at Kaspi Bank. Previous research and industry positions are listed below.</p>
+    <h2 class="section-title"><span class="chev">›</span>Experience</h2>
+
+    <div class="entry">
+      <div class="entry-year">From 2024</div>
+      <div class="entry-body">
+        <div class="entry-title">Senior Research Engineer</div>
+        <div class="entry-sub">HighSky (highsky.io)</div>
+        <div class="entry-desc">
+          Tabular foundation models; per-feature transformer architecture with novel attention
+          mechanisms for mixed-type data; synthetic data generation from structural causal graphs
+          with diverse Bayesian priors; LLM evaluation (MMLU, GSM8K, HellaSwag, HumanEval);
+          agentic multi-step reasoning systems.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2022 – 2024</div>
+      <div class="entry-body">
+        <div class="entry-title">Senior Machine Learning Engineer</div>
+        <div class="entry-sub">Delivery Hero SE</div>
+        <div class="entry-desc">
+          Transformer-based representation learning for structured product data; retrieval-augmented
+          generation (RAG) for natural language interfaces over large-scale product catalogues.
+          Awarded "Most Advanced Project" at Global Search Domain Project Week, January 2023.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2020 – 2022</div>
+      <div class="entry-body">
+        <div class="entry-title">Machine Learning Engineer</div>
+        <div class="entry-sub">KCell JSC</div>
+        <div class="entry-desc">
+          Sequential modelling of behavioural time series at population scale (15M+ users);
+          RNN/LSTM architectures for socio-economic forecasting; representation learning for
+          heterogeneous customer data; churn prediction and lifetime value estimation.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2018 – 2020</div>
+      <div class="entry-body">
+        <div class="entry-title">Postdoctoral Research Associate <small style="font-weight:400">(EPSRC EP/R003025/1)</small></div>
+        <div class="entry-sub">Queen Mary University of London</div>
+        <div class="entry-desc">
+          Harmonic analysis for Dirac-like operators affiliated with semi-finite von Neumann
+          algebras. Established Paley-type inequalities yielding a proof of the Hörmander
+          multiplier theorem via quantum group Pontryagin duality.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2017 – 2018</div>
+      <div class="entry-body">
+        <div class="entry-title">Research Associate <small style="font-weight:400">(EPSRC EP/R003025/1)</small></div>
+        <div class="entry-sub">Imperial College London</div>
+        <div class="entry-desc">
+          Characterised Connes spectral triples on compact quantum matrix groups; established
+          Schwartz kernel theorems and global pseudo-differential calculus on compact quantum groups.
+        </div>
+      </div>
+    </div>
+
+  </section>
+<section id="education">
+    <h2 class="section-title"><span class="chev">›</span>Education</h2>
+
+    <div class="entry">
+      <div class="entry-year">2014 – 2019</div>
+      <div class="entry-body">
+        <div class="entry-title">PhD in Pure Mathematics</div>
+        <div class="entry-sub">Imperial College London</div>
+        <div class="entry-desc">
+          Thesis: <em>L<sup>p</sup>–L<sup>q</sup> Fourier multipliers on locally compact groups.</em>
+          Advisor: Prof. Michael Ruzhansky. Examiners: Prof. Fulvio Ricci, Prof. Ari Laptev.
+          Novel analytical frameworks bridging Connes' noncommutative geometry with Drinfeld's
+          quantum group theory.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2012 – 2014</div>
+      <div class="entry-body">
+        <div class="entry-title">MSc in Mathematics</div>
+        <div class="entry-sub">Eurasian National University</div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2007 – 2012</div>
+      <div class="entry-body">
+        <div class="entry-title">Specialist in Mathematics & Computer Science <em style="font-weight:400">— With Honours</em></div>
+        <div class="entry-sub">Lomonosov Moscow State University</div>
+        <div class="entry-desc">
+          Diploma: Well-posed solvability of functional-differential equations with unbounded
+          operator coefficients.
+        </div>
+      </div>
+    </div>
+
+  </section>
+<section id="talks">
+    <h2 class="section-title"><span class="chev">›</span>Selected Invited Talks</h2>
+
+    <div class="entry">
+      <div class="entry-year">Jul 2025</div>
+      <div class="entry-body">
+        <div class="entry-title">Hörmander-Mikhlin type theorem on non-commutative spaces</div>
+        <div class="entry-sub">15th ISAAC Congress, Nazarbayev University, Astana</div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">Nov 2018</div>
+      <div class="entry-body">
+        <div class="entry-title">Hörmander-Mihlin multiplier theorems on noncommutative spaces</div>
+        <div class="entry-sub">Quantum Algebras Seminar, Queen Mary University of London</div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">May 2017</div>
+      <div class="entry-body">
+        <div class="entry-title">Multipliers on locally compact groups</div>
+        <div class="entry-sub">Recent Developments in Harmonic Analysis, MSRI, Berkeley</div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">Apr 2018</div>
+      <div class="entry-body">
+        <div class="entry-title">Smooth dense subalgebras and Fourier multipliers on compact quantum groups</div>
+        <div class="entry-sub">Laboratoire de Mathématiques de Besançon</div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">Apr 2015</div>
+      <div class="entry-body">
+        <div class="entry-title">Hardy-Littlewood, Hausdorff-Young-Paley inequalities and L<sup>p</sup>–L<sup>q</sup> Fourier multipliers</div>
+        <div class="entry-sub">10th ISAAC Congress, Macao University</div>
+      </div>
+    </div>
+
+  </section>
+<section id="funding">
+    <h2 class="section-title"><span class="chev">›</span>Awards &amp; Funding</h2>
+
+
+
+    <div class="entry">
+      <div class="entry-year">2017 – 2020</div>
+      <div class="entry-body">
+        <div class="entry-title">EPSRC Research Grant EP/R003025/1 — Co-investigator</div>
+        <div class="entry-sub">£500K</div>
+        <div class="entry-desc">
+          Harmonic analysis in semi-finite von Neumann algebras and quantum groups.
+          Imperial College London & Queen Mary University of London.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2016</div>
+      <div class="entry-body">
+        <div class="entry-title">Doris Chen Merit Award</div>
+        <div class="entry-sub">Department of Mathematics, Imperial College London</div>
+        <div class="entry-desc">Awarded for exceptional early promise and achievement in mathematical research.</div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2014 – 2018</div>
+      <div class="entry-body">
+        <div class="entry-title">EPSRC Doctoral Studentship</div>
+        <div class="entry-sub">Imperial College London</div>
+      </div>
+    </div>
+
+  </section>
+<section id="teaching">
+    <h2 class="section-title"><span class="chev">›</span>Teaching &amp; Service</h2>
+
+    <div class="entry">
+      <div class="entry-year">2019</div>
+      <div class="entry-body">
+        <div class="entry-title">LTCC Intensive Course Lecturer</div>
+        <div class="entry-sub">Methods of Noncommutative Analysis · UCL, London</div>
+        <div class="entry-desc">
+          8-hour graduate course covering semi-finite von Neumann algebras, noncommutative
+          geometry, Hörmander multiplier theorems via quantum group duality.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2015 – 2018</div>
+      <div class="entry-body">
+        <div class="entry-title">Graduate Teaching Assistant</div>
+        <div class="entry-sub">Imperial College London</div>
+        <div class="entry-desc">
+          High Performance Computing (M3C), Data Science (M3A50), Multivariable Calculus,
+          Analysis I &amp; II, Algebra, Real Analysis. Joint Maths &amp; Computing Tutor.
+        </div>
+      </div>
+    </div>
+
+    <div class="entry">
+      <div class="entry-year">2018 – present</div>
+      <div class="entry-body">
+        <div class="entry-title">Reviewer</div>
+        <div class="entry-sub">zbMATH Open &nbsp;·&nbsp; Junior Member, Newton Institute, Cambridge</div>
+      </div>
+    </div>
+
+    <h3 class="subheading">Academic collaborations</h3>
+    <p class="collab-list">
+      Prof. Michael Ruzhansky (Imperial / Ghent); Prof. Shahn Majid (QMUL); Prof. Yulia Kuznetsova (Franche-Comté);
+      Prof. Terry Lyons FRS (Oxford); Dr Alexis Arnaudon (Imperial).
+    </p>
+  </section>
+<footer>© 2026 Rauan Akylzhanov</footer></main></body></html>

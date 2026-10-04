@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publications — Rauan Akylzhanov</title>
+<meta name="description" content="Publications and preprints by Rauan Akylzhanov in harmonic analysis, operator algebras, and spectral theory.">
+<link rel="canonical" href="https://ra312.github.io/publications.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&amp;display=swap" rel="stylesheet">
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:     #1c1917;
+      --muted:   #57534e;
+      --rule:    #e7e5e4;
+      --nav-bg:  #f5f0eb;
+      --paper:   #fafaf9;
+      --accent:  #b45309;
+      --link:    #44403c;
+      --max:     720px;
+      --gap:     2.25rem;
+      --sans:    "Source Sans 3", "Source Sans Pro", -apple-system, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; font-size: 17px; }
+
+    body {
+      font-family: var(--sans);
+      font-weight: 300;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.65;
+      padding: 0 1.25rem;
+      padding-top: 3.25rem;
+    }
+
+    a {
+      color: var(--link);
+      text-decoration: none;
+      transition: color .15s ease;
+    }
+    a:hover { color: var(--accent); }
+
+    .page {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 2rem 0 4rem;
+    }
+
+    /* Fixed nav (bamos-like, no blur) */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--rule);
+      z-index: 100;
+      padding: .65rem 1.25rem;
+    }
+
+    nav ul {
+      max-width: var(--max);
+      margin: 0 auto;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1.25rem;
+    }
+
+    nav a {
+      font-size: .88rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+    nav a:hover { color: var(--accent); }
+
+    header {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 1.75rem;
+      margin-bottom: var(--gap);
+    }
+
+    .name {
+      font-size: clamp(1.85rem, 5vw, 2.35rem);
+      font-weight: 400;
+      letter-spacing: -.02em;
+      line-height: 1.2;
+    }
+
+    .name em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--accent);
+    }
+
+    .tagline {
+      font-size: .95rem;
+      color: var(--muted);
+      margin-top: .5rem;
+      font-weight: 300;
+    }
+
+    .contact {
+      margin-top: 1rem;
+      font-size: .92rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem 1.1rem;
+    }
+
+    .contact a { border-bottom: 1px solid var(--rule); }
+    .contact a:hover { border-color: var(--accent); }
+
+    section { margin-bottom: var(--gap); scroll-margin-top: 3.75rem; }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 400;
+      color: var(--ink);
+      margin-bottom: 1rem;
+      padding-top: .25rem;
+    }
+
+    .section-title .chev {
+      color: var(--accent);
+      font-size: .75em;
+      margin-right: .35rem;
+      vertical-align: .05em;
+    }
+
+    .lead {
+      text-align: justify;
+      font-size: .98rem;
+      margin-bottom: 1rem;
+      color: var(--ink);
+    }
+
+    .note-link {
+      font-size: .9rem;
+      color: var(--muted);
+      margin-top: .25rem;
+    }
+
+    .note-link a {
+      color: var(--muted);
+      border-bottom: 1px dotted var(--rule);
+    }
+    .note-link a:hover { color: var(--accent); border-color: var(--accent); }
+
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding: .65rem 0 .65rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: .95rem;
+      color: var(--muted);
+      background: rgba(180, 83, 9, .04);
+    }
+
+    .pull-quote .label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .45rem;
+    }
+
+    .pub-blurb {
+      font-size: .92rem;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+      line-height: 1.55;
+    }
+
+    .pub-blurb strong { font-weight: 600; color: var(--ink); }
+
+    .year-heading {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 1.5rem 0 .65rem;
+      color: var(--ink);
+    }
+
+    .year-heading:first-of-type { margin-top: 0; }
+
+    .pub-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: .25rem;
+      font-size: .95rem;
+      font-weight: 300;
+    }
+
+    .pub-table td {
+      vertical-align: top;
+      padding: .5rem 0 .85rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .pub-table tr:last-child td { border-bottom: none; }
+
+    .pub-num {
+      width: 1.75rem;
+      padding-right: .5rem;
+      text-align: right;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .pub-cell em, .pub-title-em {
+      font-style: italic;
+      font-weight: 400;
+    }
+
+    .pub-authors {
+      font-size: .88rem;
+      color: var(--muted);
+      margin-top: .2rem;
+    }
+
+    .pub-venue {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: .15rem;
+    }
+
+    .entry {
+      display: grid;
+      grid-template-columns: 6.5rem 1fr;
+      gap: 0 1.25rem;
+      margin-bottom: 1.35rem;
+    }
+
+    .entry-year {
+      font-size: .82rem;
+      color: var(--muted);
+      padding-top: .12rem;
+      font-weight: 400;
+    }
+
+    .entry-title {
+      font-weight: 600;
+      font-size: .98rem;
+      line-height: 1.35;
+    }
+
+    .entry-sub {
+      font-size: .9rem;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: .1rem;
+    }
+
+    .entry-desc {
+      font-size: .9rem;
+      margin-top: .35rem;
+      color: var(--ink);
+      line-height: 1.55;
+      text-align: justify;
+    }
+
+    .subheading {
+      font-size: .82rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 1.5rem 0 .6rem;
+    }
+
+    .collab-list {
+      font-size: .9rem;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 100%;
+    }
+
+    footer {
+      border-top: 1px solid var(--rule);
+      padding-top: 1.25rem;
+      font-size: .8rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    @media (max-width: 540px) {
+      .entry { grid-template-columns: 1fr; }
+      .entry-year { margin-bottom: .15rem; }
+      .pub-num { width: 1.35rem; }
+    }
+
+.lead, .entry-desc { text-align: left; }
+.intro { font-size: 1.08rem; }
+.research-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+.research-card { border-top: 2px solid var(--accent); padding-top: .8rem; }
+.research-card h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: .5rem; }
+.research-card p { margin-bottom: .7rem; }
+.text-link { text-decoration: underline; text-underline-offset: .2em; }
+.programme h3 { margin: 1.3rem 0 .5rem; font-size: 1.08rem; font-weight: 600; }
+.programme ul { padding-left: 1.2rem; margin: .6rem 0 1rem; }
+.programme li { margin-bottom: .55rem; }
+details { border-top: 1px solid var(--rule); padding-top: 1rem; }
+summary { cursor: pointer; font-weight: 600; margin-bottom: 1rem; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+nav a[aria-current="page"] { color: var(--accent); }
+@media (max-width: 540px) { .research-grid { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style></head><body>
+<nav aria-label="Main navigation"><ul><li><a href="index.html">About</a></li><li><a href="research.html">Research</a></li><li><a href="publications.html" aria-current="page">Publications</a></li><li><a href="blog/index.html">Writing</a></li><li><a href="cv.html">CV</a></li></ul></nav><main class="page">
+<header><h1 class="name">Publications</h1><p class="tagline">Rauan Akylzhanov</p>
+<div class="contact"><a href="mailto:akylzhanov.r@gmail.com">Email</a><a href="https://scholar.google.com/citations?user=BAxsRYkAAAAJ&amp;hl=en">Google Scholar</a><a href="https://github.com/ra312">GitHub</a></div></header>
+<section id="publications">
+    <h2 class="section-title"><span class="chev">›</span>Publications</h2>
+
+    <p class="pub-blurb">Journal articles and preprints are labelled below. See <a class="text-link" href="https://scholar.google.com/citations?user=BAxsRYkAAAAJ&amp;hl=en">Google Scholar</a> for citation metrics and indexing updates.</p>
+
+    <h3 class="year-heading">2025</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">1.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://arxiv.org/abs/2503.01240" target="_blank" rel="noopener">Hörmander–Mikhlin type theorem on non-commutative spaces</a></span>
+          <div class="pub-authors">R. Akylzhanov, M. Ruzhansky, K. Tulenov</div>
+          <div class="pub-venue">arXiv preprint arXiv:2503.01240</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2022</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">2.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1007/s00209-022-03143-z" target="_blank" rel="noopener">Norms of certain functions of a distinguished Laplacian on the <em>ax</em>+<em>b</em> groups</a></span>
+          <div class="pub-authors">R. Akylzhanov, Y. Kuznetsova, M. Ruzhansky, H. Zhang</div>
+          <div class="pub-venue">Mathematische Zeitschrift, 302(4):2327–2352</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2020</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">3.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1007/s11005-019-01212-9" target="_blank" rel="noopener">Contractions of group representations via geometric quantization</a></span>
+          <div class="pub-authors">R. Akylzhanov, A. Arnaudon</div>
+          <div class="pub-venue">Letters in Mathematical Physics, 110(1):43–59</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="pub-num">4.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1016/j.jfa.2019.108324" target="_blank" rel="noopener">L<sup>p</sup>–L<sup>q</sup> multipliers on locally compact groups</a></span>
+          <div class="pub-authors">R. Akylzhanov, M. Ruzhansky</div>
+          <div class="pub-venue">Journal of Functional Analysis, 278(3):108324</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="pub-num">5.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1007/s13324-020-00376-1" target="_blank" rel="noopener">Re-expansions on compact Lie groups</a></span>
+          <div class="pub-authors">R. Akylzhanov, E. Liflyand, M. Ruzhansky</div>
+          <div class="pub-venue">Analysis and Mathematical Physics, 10(3):33</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2019</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">6.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1016/j.jmaa.2019.07.010" target="_blank" rel="noopener">Hardy–Littlewood, Hausdorff–Young–Paley inequalities, and L<sup>p</sup>–L<sup>q</sup> Fourier multipliers on compact homogeneous manifolds</a></span>
+          <div class="pub-authors">R. Akylzhanov, M. Ruzhansky, E. Nursultanov</div>
+          <div class="pub-venue">Journal of Mathematical Analysis and Applications, 479(2):1519–1548</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2018</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">7.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1007/s00220-018-3219-4" target="_blank" rel="noopener">Smooth dense subalgebras and Fourier multipliers on compact quantum groups</a></span>
+          <div class="pub-authors">R. Akylzhanov, S. Majid, M. Ruzhansky</div>
+          <div class="pub-venue">Communications in Mathematical Physics, 362(3):761–799</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2017</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">8.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://www.mathnet.ru/eng/emj262" target="_blank" rel="noopener">Net spaces on lattices, Hardy–Littlewood type inequalities, and their converses</a></span>
+          <div class="pub-authors">R. Akylzhanov, M. Ruzhansky</div>
+          <div class="pub-venue">Eurasian Mathematical Journal, 8(3):10–27</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2016</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">9.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://arxiv.org/abs/1510.06321" target="_blank" rel="noopener">Hausdorff–Young–Paley inequalities and L<sup>p</sup>–L<sup>q</sup> Fourier multipliers on locally compact groups</a></span>
+          <div class="pub-authors">R. Akylzhanov, M. Ruzhansky</div>
+          <div class="pub-venue">arXiv preprint arXiv:1510.06321</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="pub-num">10.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1016/j.crma.2016.05.010" target="_blank" rel="noopener">Fourier multipliers and group von Neumann algebras</a></span>
+          <div class="pub-authors">R. Akylzhanov, M. Ruzhansky</div>
+          <div class="pub-venue">Comptes Rendus Mathématique, 354(8):766–770</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="pub-num">11.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1134/S0001434616070269" target="_blank" rel="noopener">Hardy–Littlewood–Paley-type inequalities on compact Lie groups</a></span>
+          <div class="pub-authors">R. Akylzhanov, E. D. Nursultanov, M. V. Ruzhanskii</div>
+          <div class="pub-venue">Matematicheskie Zametki, 100(2):287–290</div>
+        </td>
+      </tr>
+      <tr>
+        <td class="pub-num">12.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.4064/sm8106-4-2016" target="_blank" rel="noopener">Hardy–Littlewood–Paley inequalities and Fourier multipliers on SU(2)</a></span>
+          <div class="pub-authors">R. Akylzhanov, E. Nursultanov, M. Ruzhansky</div>
+          <div class="pub-venue">Studia Mathematica, 234(1):1–29</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2014</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">13.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em"><a href="https://doi.org/10.1134/S0012266114090043" target="_blank" rel="noopener">Well-posed solvability of functional-differential equations with unbounded operator coefficients</a></span>
+          <div class="pub-authors">R. Akylzhanov, V. V. Vlasov</div>
+          <div class="pub-venue">Differential Equations, 50(9):1161–1172</div>
+        </td>
+      </tr>
+    </table>
+
+    <h3 class="year-heading">2008</h3>
+    <table class="pub-table">
+      <tr>
+        <td class="pub-num">14.</td>
+        <td class="pub-cell">
+          <span class="pub-title-em">On an inequality for the non-increasing rearrangement of a function</span>
+          <div class="pub-authors">R. Akylzhanov</div>
+          <div class="pub-venue">Eurasian Mathematical Journal, no. 3, 34–36</div>
+        </td>
+      </tr>
+    </table>
+  </section>
+<footer>© 2026 Rauan Akylzhanov</footer></main></body></html>
